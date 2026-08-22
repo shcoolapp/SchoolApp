@@ -1,0 +1,47 @@
+:root {
+  --bg: #fffffb;
+  --surface: #ffffff;
+  --surface-alt: #fafaf8;
+  --border: #e5e4df;
+  --text-primary: #1a1a18;
+  --text-secondary: #6b6b68;
+  --accent: #1a1a18;
+  --accent-text: #ffffff;
+  --font-scale: 1;
+  /* Icons ship as flat black-on-white PNGs, not transparent SVGs, so exact
+     hex-color tinting isn't possible via CSS alone — this filter chain gets
+     close to the #5b5f97 accent but isn't pixel-perfect. For an exact match,
+     the icon files themselves would need to be regenerated in that color. */
+  --icon-filter: brightness(0) saturate(100%) invert(35%) sepia(21%) saturate(1115%) hue-rotate(196deg) brightness(93%) contrast(89%);
+  --nav-active-bg: #b8b8d1;
+  --today-border: #ffc145;
+}
+
+[data-theme='dark'] {
+  --bg: #17171a;
+  --surface: #232326;
+  --surface-alt: #1d1d20;
+  --border: #34343a;
+  --text-primary: #f2f2f0;
+  --text-secondary: #a3a3a0;
+  --accent: #f2f2f0;
+  --accent-text: #17171a;
+  --icon-filter: invert(1);
+  --nav-active-bg: #5b5f97;
+  --today-border: #ffc145;
+}
+
+html {
+  font-size: calc(16px * var(--font-scale));
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html[dir='rtl'] body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
