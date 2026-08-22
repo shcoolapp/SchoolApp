@@ -6,7 +6,7 @@ export default function Sidebar({ active, onSelect }) {
   const t = useTranslation();
 
   const NAV_ITEMS = [
-    { key: 'todos', label: t('todoList'), icon: '/icons/todo.png', iconSize: '2rem' },
+    { key: 'todos', label: t('todoList'), icon: '/icons/todo.png', iconSize: '1.5rem' },
     { key: 'calendar', label: t('calendar'), icon: '/icons/calendar.png' },
     { key: 'homework', label: t('homework'), icon: '/icons/homework.png' },
     { key: 'subjects', label: t('subjects'), icon: '/icons/subjects.png' },
