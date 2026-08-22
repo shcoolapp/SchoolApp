@@ -3,8 +3,8 @@
   --surface: #ffffff;
   --surface-alt: #fafaf8;
   --border: #e5e4df;
-  --text-primary: #1a1a18;
-  --text-secondary: #6b6b68;
+  --text-primary: #5b5f97;
+  --text-secondary: #b8b8d1;
   --accent: #1a1a18;
   --accent-text: #ffffff;
   --font-scale: 1;
@@ -13,7 +13,7 @@
      close to the #5b5f97 accent but isn't pixel-perfect. For an exact match,
      the icon files themselves would need to be regenerated in that color. */
   --icon-filter: brightness(0) saturate(100%) invert(35%) sepia(21%) saturate(1115%) hue-rotate(196deg) brightness(93%) contrast(89%);
-  --nav-active-bg: #b8b8d1;
+  --nav-active-bg: #fffffb;
   --today-border: #ffc145;
 }
 
