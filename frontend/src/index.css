@@ -1,0 +1,61 @@
+:root {
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-alt: #f0f0ee;
+  --border: #e2e2df;
+  --text-primary: #2b2b2d;
+  --text-secondary: #6b6b68;
+  --accent: #2b2b2d;
+  --accent-text: #ffffff;
+  --font-scale: 1;
+  --icon-filter: grayscale(100%);
+  --nav-active-bg: #e5e4df;
+  --today-border: #ffc145;
+}
+
+[data-theme='dark'] {
+  --bg: #17171a;
+  --surface: #232326;
+  --surface-alt: #1d1d20;
+  --border: #34343a;
+  --text-primary: #f2f2f0;
+  --text-secondary: #a3a3a0;
+  --accent: #f2f2f0;
+  --accent-text: #17171a;
+  --icon-filter: grayscale(100%) brightness(2.2);
+  --nav-active-bg: #3a3a40;
+  --today-border: #ffc145;
+}
+
+html {
+  font-size: calc(16px * var(--font-scale));
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html[dir='rtl'] body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* On narrow (phone-width) screens, the 7-column calendar grid gets squeezed
+   into thin tall cells. Switch to fixed-size square cells with horizontal
+   scroll instead, so each day stays readable and proportioned. */
+@media (max-width: 640px) {
+  .calendar-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .calendar-weekdays,
+  .calendar-grid {
+    min-width: 480px;
+  }
+  .calendar-grid > div {
+    aspect-ratio: 1 / 1;
+    min-height: 0 !important;
+  }
+}
