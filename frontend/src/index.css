@@ -1,0 +1,63 @@
+:root {
+  --bg: #f0f0ee;
+  --surface: #f7f7f5;
+  --surface-alt: #ebebe8;
+  --border: #dcdcd8;
+  --text-primary: #2b2b2d;
+  --text-secondary: #6b6b68;
+  --accent: #2b2b2d;
+  --accent-text: #ffffff;
+  --font-scale: 1;
+  --icon-filter: grayscale(100%);
+  --nav-active-bg: #e5e4df;
+  --today-border: #ffc145;
+  --cal-exam: #993556;
+  --cal-homework: #D4537E;
+  --cal-weekend: #97C459;
+  --cal-weekend-label: #5d8a2a;
+}
+
+[data-theme='dark'] {
+  --bg: #17171a;
+  --surface: #232326;
+  --surface-alt: #1d1d20;
+  --border: #34343a;
+  --text-primary: #f2f2f0;
+  --text-secondary: #a3a3a0;
+  --accent: #f2f2f0;
+  --accent-text: #17171a;
+  --icon-filter: grayscale(100%) brightness(2.2);
+  --nav-active-bg: #3a3a40;
+  --today-border: #ffc145;
+  --cal-exam: #6e2540;
+  --cal-homework: #9c3b60;
+  --cal-weekend: #4a6b32;
+  --cal-weekend-label: #97C459;
+}
+
+html {
+  font-size: calc(16px * var(--font-scale));
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+html[dir='rtl'] body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+}
+
+/* Calendar layout by orientation (see Calendar.jsx):
+   - portrait phone: weekdays on the Y axis, weeks across the X axis (no scrolling)
+   - landscape / wider: weekdays on the X axis. On a short landscape screen the
+     100px cells would push the month far below the fold, so tighten them. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .calendar-grid > .calendar-cell {
+    min-height: 56px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+}
