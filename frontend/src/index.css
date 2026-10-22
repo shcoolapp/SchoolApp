@@ -48,6 +48,16 @@ body {
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* Browsers give buttons/inputs their own text color (black), which is
+   unreadable on the dark theme. Make them follow the theme unless a
+   component sets its own color inline. */
+button,
+input,
+select,
+textarea {
+  color: inherit;
+}
+
 html[dir='rtl'] body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
 }
