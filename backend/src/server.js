@@ -15,6 +15,7 @@ const archiveRoutes = require('./routes/archive');
 const adminRoutes = require('./routes/admin');
 const announcementRoutes = require('./routes/announcements');
 const notificationRoutes = require('./routes/notifications');
+const pushRoutes = require('./routes/push');
 const { seedDefaultAdmin } = require('./utils/seedAdmin');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/archive', archiveRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/push', pushRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

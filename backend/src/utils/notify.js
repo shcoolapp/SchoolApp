@@ -1,16 +1,21 @@
 const pool = require('../db/pool');
+const { pushToUsers } = require('./push');
 
 // Notifications are a convenience: a failure here must never break the request that triggered it.
 async function safe(fn) {
   try { await fn(); } catch (err) { console.error('notify failed:', err.message); }
 }
 
-function insertFor(studentIdsQuery, params, { type, title, body, refId }) {
-  return pool.query(
+// Stores the in-app notification for each recipient, then pushes it to their devices right away.
+async function insertFor(studentIdsQuery, params, { type, title, body, refId }) {
+  const { rows } = await pool.query(
     `INSERT INTO notifications (user_id, type, title, body, ref_id)
-     SELECT sid, $1::varchar, $2::varchar, $3::text, $4::int FROM (${studentIdsQuery}) AS q(sid)`,
+     SELECT sid, $1::varchar, $2::varchar, $3::text, $4::int FROM (${studentIdsQuery}) AS q(sid)
+     RETURNING user_id`,
     [type, title, body || null, refId || null, ...params]
   );
+  // not awaited: the teacher's request must not wait for the push services
+  pushToUsers(rows.map((r) => r.user_id), { title, body: body || '', type, tag: `${type}-${refId || Date.now()}`, url: '/dashboard' });
 }
 
 // Everyone enrolled in a subject
