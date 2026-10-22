@@ -11,6 +11,8 @@ import MarksPanel from '../components/MarksPanel';
 import AnnouncementsPanel from '../components/AnnouncementsPanel';
 import NotificationBell from '../components/NotificationBell';
 import useNotifications from '../hooks/useNotifications';
+import usePush from '../hooks/usePush';
+import { unsubscribeFromPush } from '../lib/push';
 import { clearToken, getStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
 
@@ -20,6 +22,7 @@ export default function Dashboard() {
   const user = getStoredUser();
   const t = useTranslation();
   const notifications = useNotifications();
+  const push = usePush();
   const unreadAnnouncements = notifications.items.filter((n) => n.type === 'announcement' && !n.read_at).length;
 
   // opening the Announcements page counts as reading them
@@ -30,7 +33,8 @@ export default function Dashboard() {
       .forEach((n) => notifications.markRead(n.id));
   }, [active, notifications.items]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function handleLogout() {
+  async function handleLogout() {
+    await unsubscribeFromPush(); // needs the token, so before clearToken()
     clearToken();
     navigate('/');
   }
@@ -44,7 +48,7 @@ export default function Dashboard() {
             {t('signedInAs')} {user?.name} ({user?.role})
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <NotificationBell {...notifications} onNavigate={setActive} />
+            <NotificationBell {...notifications} push={push} onNavigate={setActive} />
             <button onClick={handleLogout} style={styles.logoutBtn}>{t('signOut')}</button>
           </div>
         </div>

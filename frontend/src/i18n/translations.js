@@ -30,6 +30,9 @@ const translations = {
     announcementTitleRequired: 'Enter a title for the announcement',
     announcementSent: 'Announcement sent.',
     postAnnouncement: 'Post announcement',
+    pushPrompt: 'Get an alert on this device when something new is posted.',
+    pushEnable: 'Turn on',
+    pushBlocked: 'Alerts are blocked for this site. Allow notifications in your browser settings to turn them on.',
     everyone: 'Everyone',
     allClassrooms: 'All classrooms',
 
@@ -197,6 +200,9 @@ const translations = {
     announcementTitleRequired: 'أدخل عنوانًا للإعلان',
     announcementSent: 'تم إرسال الإعلان.',
     postAnnouncement: 'نشر الإعلان',
+    pushPrompt: 'احصل على تنبيه على هذا الجهاز عند نشر أي جديد.',
+    pushEnable: 'تفعيل',
+    pushBlocked: 'التنبيهات محظورة لهذا الموقع. اسمح بالإشعارات من إعدادات المتصفح لتفعيلها.',
     everyone: 'الجميع',
     allClassrooms: 'كل الشعب',
 

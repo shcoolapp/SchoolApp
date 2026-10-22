@@ -13,7 +13,7 @@ function timeAgo(iso, t) {
   return `${Math.round(hrs / 24)} ${t('daysShort')}`;
 }
 
-export default function NotificationBell({ unread, items, markRead, markAllRead, onNavigate }) {
+export default function NotificationBell({ unread, items, markRead, markAllRead, onNavigate, push }) {
   const [open, setOpen] = useState(false);
   const box = useRef(null);
   const t = useTranslation();
@@ -50,6 +50,13 @@ export default function NotificationBell({ unread, items, markRead, markAllRead,
             <strong style={{ fontSize: '0.875rem' }}>{t('notifications')}</strong>
             {unread > 0 && <button style={styles.linkBtn} onClick={markAllRead}>{t('markAllRead')}</button>}
           </div>
+          {push && push.status === 'default' && (
+            <div style={styles.pushBox}>
+              <span style={{ fontSize: '0.75rem' }}>{t('pushPrompt')}</span>
+              <button style={styles.pushBtn} onClick={push.enable} disabled={push.busy}>{t('pushEnable')}</button>
+            </div>
+          )}
+          {push && push.status === 'denied' && <p style={styles.pushNote}>{t('pushBlocked')}</p>}
           <div style={styles.list}>
             {items.length === 0 && <p style={styles.empty}>{t('noNotifications')}</p>}
             {items.map((n) => (
@@ -119,6 +126,9 @@ const styles = {
   },
   menuHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border)', color: 'var(--text-primary)' },
   linkBtn: { border: 'none', background: 'transparent', color: 'var(--cobalt)', fontSize: '0.75rem', cursor: 'pointer', padding: 0 },
+  pushBox: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '10px 14px', background: 'var(--cobalt-soft)', borderBottom: '1px solid var(--border)', color: 'var(--text-primary)' },
+  pushBtn: { border: 'none', borderRadius: '6px', background: 'var(--cobalt)', color: 'var(--on-cobalt)', fontSize: '0.75rem', padding: '6px 10px', cursor: 'pointer', flexShrink: 0 },
+  pushNote: { margin: 0, padding: '8px 14px', fontSize: '0.688rem', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' },
   list: { maxHeight: '60vh', overflowY: 'auto' },
   empty: { margin: 0, padding: '18px 14px', fontSize: '0.812rem', color: 'var(--text-secondary)' },
   item: { display: 'flex', gap: '10px', width: '100%', textAlign: 'start', border: 'none', borderBottom: '1px solid var(--border)', padding: '10px 14px', cursor: 'pointer', color: 'var(--text-primary)' },
