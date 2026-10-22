@@ -54,7 +54,7 @@ function StudentReportCard({ t, language, user }) {
         </div>
       </div>
 
-      {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
       {loading && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('loading')}</p>}
 
       {!loading && (
@@ -226,8 +226,8 @@ function TeacherMarksEntry({ t, language }) {
         </div>
       )}
 
-      {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
-      {savedMessage && <p style={{ color: '#2e7d32', fontSize: '0.812rem' }}>{savedMessage}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
+      {savedMessage && <p style={{ color: 'var(--success)', fontSize: '0.812rem' }}>{savedMessage}</p>}
 
       {selectedSubject && (
         <>

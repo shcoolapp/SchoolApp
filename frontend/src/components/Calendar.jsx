@@ -165,7 +165,7 @@ export default function Calendar() {
       headerText = hwItems.length > 1 ? `H.W +${hwItems.length - 1}` : 'H.W';
     } else if (isWeekend || isHoliday) {
       bg = COLORS.weekend;
-      textColor = '#173404';
+      textColor = '#FFFFFF';
     }
 
     const hasItems = dayTodos.length > 0;
@@ -213,7 +213,7 @@ export default function Calendar() {
         <button style={styles.navBtn} onClick={() => changeMonth(rightAction)}>&#8250;</button>
       </div>
 
-      {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
       {isPortrait ? (
         <div className="calendar-grid calendar-grid-portrait" style={{ ...styles.gridPortrait, gridTemplateColumns: `40px repeat(${weekCount}, 1fr)` }}>

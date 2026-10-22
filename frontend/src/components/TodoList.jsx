@@ -82,7 +82,7 @@ export default function TodoList() {
         </form>
       )}
 
-      {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
       <div style={{ marginTop: '1rem' }}>
         {todos.length === 0 && (

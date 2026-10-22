@@ -153,7 +153,7 @@ export default function SubjectsPanel() {
         <button type="submit" style={styles.addBtn}>{t('addSubject')}</button>
       </form>
 
-      {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
       <div style={{ marginTop: '1rem' }}>
         {subjects.length === 0 && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('noSubjectsYet')}</p>}
@@ -179,10 +179,10 @@ export default function SubjectsPanel() {
       <input type="file" accept=".xlsx" onChange={handleSubjectImport} disabled={subjectImporting} />
       {subjectImporting && <p style={{ fontSize: '0.812rem', color: 'var(--text-secondary)' }}>{t('importing')}</p>}
       {subjectImportResult && (
-        <p style={{ fontSize: '0.812rem', color: '#2e7d32' }}>
+        <p style={{ fontSize: '0.812rem', color: 'var(--success)' }}>
           {t('created')} {subjectImportResult.created}, {t('skipped')} {subjectImportResult.skipped} ({t('alreadyExisted')}), {t('enrolled')} {subjectImportResult.enrolled}.
           {subjectImportResult.errors?.length > 0 && (
-            <span style={{ color: '#c0392b', display: 'block' }}>
+            <span style={{ color: 'var(--error)', display: 'block' }}>
               {subjectImportResult.errors.length} {t('rowsHadErrors')}
               {subjectImportResult.errors.map((e, idx) => <span key={idx} style={{ display: 'block' }}>{e}</span>)}
             </span>
@@ -202,11 +202,11 @@ export default function SubjectsPanel() {
       <input type="file" accept=".xlsx" onChange={handleFileUpload} disabled={importing} />
       {importing && <p style={{ fontSize: '0.812rem', color: 'var(--text-secondary)' }}>{t('importing')}</p>}
       {importResult && (
-        <p style={{ fontSize: '0.812rem', color: '#2e7d32' }}>
+        <p style={{ fontSize: '0.812rem', color: 'var(--success)' }}>
           {t('created')} {importResult.created}, {t('skipped')} {importResult.skipped} ({t('alreadyExisted')}), {t('enrolled')} {importResult.enrolled}.
           {importResult.credentialsFile && ` ${t('loginSheetDownloaded')}`}
           {importResult.errors?.length > 0 && (
-            <span style={{ color: '#c0392b', display: 'block' }}>
+            <span style={{ color: 'var(--error)', display: 'block' }}>
               {importResult.errors.length} {t('rowsHadErrors')}
             </span>
           )}

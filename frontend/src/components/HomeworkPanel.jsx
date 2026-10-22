@@ -255,7 +255,7 @@ export default function HomeworkPanel() {
           {t('templateLabel')} {activeQuiz.templateNumber} · {activeQuiz.isOfficial ? t('firstAttemptCounts') : t('practiceMode')}
         </p>
         {secondsLeft !== null && (
-          <p style={{ ...styles.timer, color: secondsLeft <= 60 ? '#c0392b' : 'var(--text-primary)' }}>
+          <p style={{ ...styles.timer, color: secondsLeft <= 60 ? 'var(--error)' : 'var(--text-primary)' }}>
             {t('timeLeft')}: {formatClock(secondsLeft)}
           </p>
         )}
@@ -277,7 +277,7 @@ export default function HomeworkPanel() {
             ))}
           </div>
         ))}
-        {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+        {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
         <button onClick={submitQuiz} style={styles.primaryBtn} disabled={submitting}>
           {submitting ? t('submitting') : t('submit')}
         </button>
@@ -304,7 +304,7 @@ export default function HomeworkPanel() {
         </p>
       )}
 
-      {error && !showForm && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+      {error && !showForm && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
       {showForm && (
         <form onSubmit={handleCreate} style={styles.form}>
@@ -431,7 +431,7 @@ export default function HomeworkPanel() {
             </>
           )}
 
-          {error && <p style={{ color: '#c0392b', fontSize: '0.812rem' }}>{error}</p>}
+          {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
           <button type="submit" style={styles.primaryBtn} disabled={creating}>
             {creating ? t('creating') : t('createHomework')}
@@ -444,7 +444,7 @@ export default function HomeworkPanel() {
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('noHomeworkYet')}</p>
       )}
 
-      {uploadMessage && <p style={{ color: '#2e7d32', fontSize: '0.812rem' }}>{uploadMessage}</p>}
+      {uploadMessage && <p style={{ color: 'var(--success)', fontSize: '0.812rem' }}>{uploadMessage}</p>}
 
       {viewingResultsFor && (
         <div style={styles.submissionsPanel}>

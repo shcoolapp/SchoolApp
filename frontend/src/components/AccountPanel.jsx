@@ -91,8 +91,8 @@ export default function AccountPanel() {
           style={styles.input}
         />
 
-        {error && <p style={{ color: '#c0392b', fontSize: '0.812rem', marginTop: '8px' }}>{error}</p>}
-        {success && <p style={{ color: '#2e7d32', fontSize: '0.812rem', marginTop: '8px' }}>{success}</p>}
+        {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem', marginTop: '8px' }}>{error}</p>}
+        {success && <p style={{ color: 'var(--success)', fontSize: '0.812rem', marginTop: '8px' }}>{success}</p>}
 
         <button type="submit" style={styles.primaryBtn} disabled={saving}>
           {saving ? t('saving') : t('saveChanges')}
