@@ -19,7 +19,9 @@
   direction: ltr; /* keep the door on the left and the form on the right, even when the portal is in Arabic (rtl) */
 }
 @media (orientation: portrait) {
-  .door-login { grid-template-columns: 1fr; grid-template-rows: 2fr 1fr; }
+  /* the form takes the height it needs; the door gets the rest (and is never squeezed under 40% of the screen) */
+  .door-login { grid-template-columns: 1fr; grid-template-rows: minmax(40dvh, 1fr) auto; overflow-y: auto; }
+  .door-login__panel { justify-content: flex-start; overflow: visible; padding-top: 0.5rem; padding-bottom: 1.25rem; }
 }
 /* the form's own text still follows the page language */
 html[dir='rtl'] .door-login__panel { direction: rtl; }

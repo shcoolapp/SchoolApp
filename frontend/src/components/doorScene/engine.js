@@ -4,11 +4,14 @@ const MARKUP = `<svg id="sv" viewBox="0 0 600 700" aria-hidden="true">
 <defs>
 <pattern id="brk" width="40" height="20" patternUnits="userSpaceOnUse"><rect width="40" height="20" style="fill:var(--brick)"/><path d="M0 0H40M0 10H40M20 0V10M0 10V20M40 10V20" fill="none" style="stroke:var(--brickDark)" stroke-opacity=".45" stroke-width="1.4"/></pattern>
 <linearGradient id="hf"><stop offset="0" stop-color="#000"/><stop offset=".22" stop-color="#fff"/><stop offset=".78" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
-<mask id="wm"><rect width="600" height="700" fill="url(#hf)"/></mask>
+<mask id="wm"><rect width="600" height="760" fill="url(#hf)"/></mask>
+<linearGradient id="vf" gradientUnits="userSpaceOnUse" x1="0" y1="708" x2="0" y2="760"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>
+<mask id="vm"><rect width="600" height="760" fill="url(#vf)"/></mask>
 <clipPath id="dc"><path id="archClip"/></clipPath>
 </defs>
 <g id="A">
- <g mask="url(#wm)"><rect width="600" height="700" fill="url(#brk)"/></g>
+ <g mask="url(#wm)"><g mask="url(#vm)"><rect width="600" height="760" fill="url(#brk)"/></g>
+  <rect id="ground" y="700" width="600" height="9" style="fill:var(--navy)"/></g>
  <path id="frame" fill="none" style="stroke:var(--cobalt)" stroke-width="84" stroke-linejoin="round"/>
  <path id="back" fill="none" style="stroke:var(--navy)" stroke-width="72" stroke-linejoin="round"/>
  <g id="band"></g>
@@ -57,9 +60,14 @@ export function createDoorScene(root) {
   const $ = (id) => root.querySelector('#' + id);
   const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mq = window.matchMedia('(orientation:portrait)');
-  const fit = () => $('sv').setAttribute('preserveAspectRatio', mq.matches ? 'xMidYMid slice' : 'xMidYMid meet');
+  // portrait: show the whole door (nothing cropped) plus a navy threshold line under it, with the bricks fading out below
+  // landscape: the original framing (the extra 60 units of ground are outside the view box)
+  const fit = () => {
+    $('sv').setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    $('sv').setAttribute('viewBox', mq.matches ? '0 0 600 760' : '0 0 600 700');
+  };
   fit();
-  mq.addEventListener('change', fit); // portrait: crop the side walls so the door still reaches the top and bottom
+  mq.addEventListener('change', fit); 
 
   /* ---- static art ---- */
   ['archClip', 'archFill'].forEach((i) => $(i).setAttribute('d', C.arch + 'Z'));
