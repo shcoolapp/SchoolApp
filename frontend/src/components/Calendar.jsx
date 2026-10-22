@@ -289,7 +289,7 @@ function LegendItem({ color, label }) {
 
 const styles = {
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' },
-  navBtn: { width: '32px', height: '32px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', cursor: 'pointer' },
+  navBtn: { color: 'var(--text-primary)', width: '32px', height: '32px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', cursor: 'pointer' },
   monthLabel: { fontSize: '1.125rem', fontWeight: 500 },
   weekdays: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '4px' },
   weekdayLabel: {},
@@ -301,7 +301,7 @@ const styles = {
   legend: { display: 'flex', gap: '16px', marginTop: '1rem', flexWrap: 'wrap' },
   popup: { marginTop: '1rem', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '1rem' },
   popupHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  closeBtn: { border: 'none', background: 'transparent', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1 },
+  closeBtn: { color: 'var(--text-primary)', border: 'none', background: 'transparent', fontSize: '1.125rem', cursor: 'pointer', lineHeight: 1 },
   popupItem: { padding: '6px 0', borderTop: '1px solid var(--border)', fontSize: '0.875rem' },
   addBtn: { marginTop: '12px', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', cursor: 'pointer', fontSize: '0.812rem' }
 };
