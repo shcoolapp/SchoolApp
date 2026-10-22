@@ -8,13 +8,12 @@
   --accent: #14295A;
   --accent-text: #FFFFFF;
   --font-scale: 1;
-  --icon-filter: grayscale(100%);
   --nav-active-bg: #DDE5F2;
   --today-border: #C9A24B;
-  --cal-exam: #985251;
-  --cal-homework: #24508C;
-  --cal-weekend: #23808C;
-  --cal-weekend-label: #23808C;
+  --cal-exam: #A93232;
+  --cal-homework: #C96A1B;
+  --cal-weekend: #2B8A70;
+  --cal-weekend-label: #2B8A70;
   --error: #985251;
   --success: #23808C;
 }
@@ -28,13 +27,12 @@
   --text-secondary: #A9B4CF;
   --accent: #C9A24B;
   --accent-text: #0D1731;
-  --icon-filter: grayscale(100%) brightness(2.2);
   --nav-active-bg: #24508C;
   --today-border: #C9A24B;
-  --cal-exam: #985251;
-  --cal-homework: #3A6DB4;
-  --cal-weekend: #23808C;
-  --cal-weekend-label: #5FC3B5;
+  --cal-exam: #C0453F;
+  --cal-homework: #D47A2C;
+  --cal-weekend: #2B8A70;
+  --cal-weekend-label: #6CCBA0;
   --error: #E3A8A3;
   --success: #5FC3B5;
 }
