@@ -35,11 +35,12 @@ export default function Sidebar({ active, onSelect }) {
               background: active === item.key ? 'var(--nav-active-bg)' : 'transparent'
             }}
           >
-            <img
-              src={item.icon}
-              alt=""
+            <span
+              aria-hidden="true"
               style={{
                 ...styles.icon,
+                WebkitMaskImage: `url(${item.icon})`,
+                maskImage: `url(${item.icon})`,
                 ...(item.iconSize ? { width: item.iconSize, height: item.iconSize } : {})
               }}
             />
@@ -86,5 +87,17 @@ const styles = {
     alignItems: 'center',
     gap: '10px'
   },
-  icon: { width: '1.5rem', height: '1.5rem', flexShrink: 0, filter: 'var(--icon-filter, none)' }
+  icon: {
+    width: '1.5rem',
+    height: '1.5rem',
+    flexShrink: 0,
+    display: 'inline-block',
+    background: 'var(--text-primary)', // navy in light theme, light in dark theme
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center',
+    maskPosition: 'center',
+    WebkitMaskSize: 'contain',
+    maskSize: 'contain'
+  }
 };
