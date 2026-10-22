@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/pool');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { notifySubjectStudents } = require('../utils/notify');
 
 const router = express.Router();
 
@@ -15,7 +16,14 @@ router.post('/', requireAuth, requireRole('teacher'), async (req, res) => {
     'INSERT INTO exams (subject_id, exam_date, exam_time, scope) VALUES ($1, $2, $3, $4) RETURNING *',
     [subjectId, examDate, examTime, scope]
   );
-  res.status(201).json(result.rows[0]);
+  const exam = result.rows[0];
+  await notifySubjectStudents(subjectId, {
+    type: 'exam',
+    title: `${subject.rows[0].name}: new exam`,
+    body: `${String(examDate).slice(0, 10)}${examTime ? ' ' + String(examTime).slice(0, 5) : ''}${scope ? ' — ' + scope : ''}`,
+    refId: exam.id
+  });
+  res.status(201).json(exam);
 });
 
 // GET /api/exams/subject/:id — list exams for a subject (teacher who owns it, or enrolled student)

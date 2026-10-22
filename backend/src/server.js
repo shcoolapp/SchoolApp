@@ -13,6 +13,8 @@ const todoRoutes = require('./routes/todos');
 const holidayRoutes = require('./routes/holidays');
 const archiveRoutes = require('./routes/archive');
 const adminRoutes = require('./routes/admin');
+const announcementRoutes = require('./routes/announcements');
+const notificationRoutes = require('./routes/notifications');
 const { seedDefaultAdmin } = require('./utils/seedAdmin');
 
 const app = express();
@@ -30,6 +32,8 @@ app.use('/api/todos', todoRoutes);
 app.use('/api/holidays', holidayRoutes);
 app.use('/api/archive', archiveRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

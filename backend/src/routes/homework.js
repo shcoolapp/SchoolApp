@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const pool = require('../db/pool');
+const { notifySubjectStudents } = require('../utils/notify');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { uploadHomeworkFile, deleteFromDrive } = require('../utils/driveBackup');
 
@@ -139,6 +140,12 @@ router.post('/', requireAuth, requireRole('teacher'), async (req, res) => {
     }
 
     await client.query('COMMIT');
+    await notifySubjectStudents(subjectId, {
+      type: 'homework',
+      title: `${subject.rows[0].name}: new homework`,
+      body: `${title} — due ${String(dueDate).slice(0, 10)}`,
+      refId: homework.id
+    });
     res.status(201).json(homework);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -351,6 +358,12 @@ router.post('/file', requireAuth, requireRole('teacher'), async (req, res) => {
     'INSERT INTO homework (subject_id, title, description, type, due_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
     [subjectId, title, description, 'file', dueDate]
   );
+  await notifySubjectStudents(subjectId, {
+    type: 'homework',
+    title: `${subject.rows[0].name}: new homework`,
+    body: `${title} — due ${String(dueDate).slice(0, 10)}`,
+    refId: result.rows[0].id
+  });
   res.status(201).json(result.rows[0]);
 });
 

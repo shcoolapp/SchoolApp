@@ -1,6 +1,7 @@
 const express = require('express');
 const pool = require('../db/pool');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { notifyUser } = require('../utils/notify');
 
 const router = express.Router();
 
@@ -15,6 +16,12 @@ router.post('/', requireAuth, requireRole('teacher'), async (req, res) => {
     'INSERT INTO marks (student_id, subject_id, value, term, description) VALUES ($1, $2, $3, $4, $5) RETURNING *',
     [studentId, subjectId, value, term, description]
   );
+  await notifyUser(studentId, {
+    type: 'mark',
+    title: `${subject.rows[0].name}: new mark`,
+    body: `${value}${description ? ' — ' + description : ''}`,
+    refId: result.rows[0].id
+  });
   res.status(201).json(result.rows[0]);
 });
 
