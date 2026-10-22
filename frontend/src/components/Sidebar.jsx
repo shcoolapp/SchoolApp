@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from '../i18n/translations';
 import { getStoredUser } from '../api/client';
 
-export default function Sidebar({ active, onSelect }) {
+export default function Sidebar({ active, onSelect, announcementBadge = 0 }) {
   const [collapsed, setCollapsed] = useState(false);
   const t = useTranslation();
   const user = getStoredUser();
@@ -10,6 +10,7 @@ export default function Sidebar({ active, onSelect }) {
   const NAV_ITEMS = [
     { key: 'todos', label: t('todoList'), icon: '/icons/todo.png', iconSize: '2rem' },
     { key: 'calendar', label: t('calendar'), icon: '/icons/calendar.png' },
+    { key: 'announcements', label: t('announcements'), icon: '/icons/announcements.png', badge: announcementBadge },
     { key: 'homework', label: t('homework'), icon: '/icons/homework.png' },
     { key: 'marks', label: t('marks'), icon: '/icons/subjects.png' },
     // Subjects management is admin-only — hidden from regular teachers/students
@@ -44,7 +45,10 @@ export default function Sidebar({ active, onSelect }) {
                 ...(item.iconSize ? { width: item.iconSize, height: item.iconSize } : {})
               }}
             />
-            {!collapsed && <span>{item.label}</span>}
+            {!collapsed && <span style={{ flex: 1 }}>{item.label}</span>}
+            {item.badge > 0 && (
+              <span style={collapsed ? styles.badgeCollapsed : styles.badge}>{item.badge > 99 ? '99+' : item.badge}</span>
+            )}
           </button>
         ))}
       </nav>
@@ -85,7 +89,16 @@ const styles = {
     overflow: 'hidden',
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '10px',
+    position: 'relative'
+  },
+  badge: {
+    minWidth: '18px', height: '18px', padding: '0 5px', boxSizing: 'border-box', borderRadius: '9px',
+    background: 'var(--cobalt)', color: 'var(--on-cobalt)', fontSize: '0.625rem', fontWeight: 600, lineHeight: '18px', textAlign: 'center'
+  },
+  badgeCollapsed: {
+    position: 'absolute', top: '4px', insetInlineEnd: '4px', minWidth: '16px', height: '16px', padding: '0 4px', boxSizing: 'border-box',
+    borderRadius: '8px', background: 'var(--cobalt)', color: 'var(--on-cobalt)', fontSize: '0.562rem', fontWeight: 600, lineHeight: '16px', textAlign: 'center'
   },
   icon: {
     width: '1.5rem',

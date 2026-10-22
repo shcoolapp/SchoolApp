@@ -95,7 +95,14 @@ export const api = {
   submitHomeworkAnswers: (homeworkId, attemptId, answers) =>
     request(`/homework/${homeworkId}/submit`, { method: 'POST', body: JSON.stringify({ attemptId, answers }) }),
   getHomeworkResults: (homeworkId) => request(`/homework/${homeworkId}/results`),
-  getSubjectExams: (subjectId) => request(`/exams/subject/${subjectId}`)
+  getSubjectExams: (subjectId) => request(`/exams/subject/${subjectId}`),
+
+  getNotifications: () => request('/notifications'),
+  markNotificationRead: (id) => request(`/notifications/${id}/read`, { method: 'POST' }),
+  markAllNotificationsRead: () => request('/notifications/read-all', { method: 'POST' }),
+  getAnnouncements: () => request('/announcements'),
+  createAnnouncement: (payload) => request('/announcements', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteAnnouncement: (id) => request(`/announcements/${id}`, { method: 'DELETE' })
 };
 
 export function setToken(token) {

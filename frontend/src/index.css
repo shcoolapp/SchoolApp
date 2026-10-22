@@ -14,6 +14,9 @@
   --cal-homework: #C96A1B;
   --cal-weekend: #2B8A70;
   --cal-weekend-label: #2B8A70;
+  --cobalt: #24508C;
+  --cobalt-soft: #E3EBF6;
+  --on-cobalt: #FFFFFF;
   --error: #985251;
   --success: #23808C;
 }
@@ -33,6 +36,9 @@
   --cal-homework: #D47A2C;
   --cal-weekend: #2B8A70;
   --cal-weekend-label: #6CCBA0;
+  --cobalt: #3A6DB4;
+  --cobalt-soft: #16305F;
+  --on-cobalt: #FFFFFF;
   --error: #E3A8A3;
   --success: #5FC3B5;
 }
