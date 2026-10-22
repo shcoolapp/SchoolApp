@@ -3,10 +3,10 @@ import { api, getStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
 import { useSettings } from '../context/SettingsContext';
 
-// Phones held upright get a transposed calendar: weekdays run down the Y axis
+// Phones and tablets held upright get a transposed calendar: weekdays run down the Y axis
 // and weeks run across the X axis, so all days fit without sideways scrolling.
 // Landscape (and wider screens) keep the classic layout with weekdays on the X axis.
-const PORTRAIT_QUERY = '(orientation: portrait) and (max-width: 640px)';
+const PORTRAIT_QUERY = '(orientation: portrait) and (max-width: 1100px)';
 
 function useIsPortraitPhone() {
   const get = () => typeof window !== 'undefined' && window.matchMedia(PORTRAIT_QUERY).matches;
