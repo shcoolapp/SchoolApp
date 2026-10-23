@@ -18,7 +18,7 @@ router.post('/', requireAuth, requireRole('teacher'), async (req, res) => {
   );
   await notifySubjectStudents(subjectId, {
     type: 'todo',
-    title: `${subject.rows[0].name}: new activity`,
+    title: `${subject.rows[0].name}: new event`,
     body: `${String(activityDate).slice(0, 10)} — ${description}`,
     refId: result.rows[0].id
   });

@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Calendar from '../components/Calendar';
-import TodoList from '../components/TodoList';
 import SubjectsPanel from '../components/SubjectsPanel';
 import SettingsPanel from '../components/SettingsPanel';
 import HomeworkPanel from '../components/HomeworkPanel';
 import AccountPanel from '../components/AccountPanel';
 import MarksPanel from '../components/MarksPanel';
-import AnnouncementsPanel from '../components/AnnouncementsPanel';
-import NotificationBell from '../components/NotificationBell';
+import NoticesPanel from '../components/NoticesPanel';
+import InstallPrompt from '../components/InstallPrompt';
 import useNotifications from '../hooks/useNotifications';
 import usePush from '../hooks/usePush';
 import { unsubscribeFromPush } from '../lib/push';
@@ -23,13 +22,12 @@ export default function Dashboard() {
   const t = useTranslation();
   const notifications = useNotifications();
   const push = usePush();
-  const unreadAnnouncements = notifications.items.filter((n) => n.type === 'announcement' && !n.read_at).length;
 
-  // opening the Announcements page counts as reading them
+  // announcements and activities are shown on the Notices page itself, so opening it counts as reading them
   useEffect(() => {
-    if (active !== 'announcements') return;
+    if (active !== 'notices') return;
     notifications.items
-      .filter((n) => n.type === 'announcement' && !n.read_at)
+      .filter((n) => (n.type === 'announcement' || n.type === 'todo') && !n.read_at)
       .forEach((n) => notifications.markRead(n.id));
   }, [active, notifications.items]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -41,21 +39,19 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-      <Sidebar active={active} onSelect={setActive} announcementBadge={unreadAnnouncements} />
+      <Sidebar active={active} onSelect={setActive} noticesBadge={notifications.unread} />
       <main style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {t('signedInAs')} {user?.name} ({user?.role})
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <NotificationBell {...notifications} push={push} onNavigate={setActive} />
-            <button onClick={handleLogout} style={styles.logoutBtn}>{t('signOut')}</button>
-          </div>
+          <button onClick={handleLogout} style={styles.logoutBtn}>{t('signOut')}</button>
         </div>
 
+        <InstallPrompt />
+
         {active === 'calendar' && <Calendar />}
-        {active === 'announcements' && <AnnouncementsPanel onChanged={notifications.refresh} />}
-        {active === 'todos' && <TodoList />}
+        {active === 'notices' && <NoticesPanel notifications={notifications} push={push} onNavigate={setActive} />}
         {active === 'homework' && <HomeworkPanel />}
         {active === 'marks' && <MarksPanel />}
         {active === 'subjects' && <SubjectsPanel />}

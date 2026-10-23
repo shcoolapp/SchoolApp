@@ -22,6 +22,11 @@ export default function TodoList() {
 
   useEffect(() => { load(); }, []);
 
+  // only events from today onwards (the list comes sorted by date)
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const upcoming = todos.filter((item) => item.activity_date.slice(0, 10) >= today);
+
   async function handleAdd(e) {
     e.preventDefault();
     if (!form.subjectId || !form.activityDate || !form.description) {
@@ -50,7 +55,7 @@ export default function TodoList() {
   return (
     <div style={{ maxWidth: '560px' }}>
       <h2 style={{ fontSize: '1.125rem', fontWeight: 500, marginBottom: '1rem', color: 'var(--text-primary)' }}>
-        {translate('todoList')}
+        {translate('upcomingEvents')}
       </h2>
 
       {user?.role === 'teacher' && (
@@ -85,10 +90,10 @@ export default function TodoList() {
       {error && <p style={{ color: 'var(--error)', fontSize: '0.812rem' }}>{error}</p>}
 
       <div style={{ marginTop: '1rem' }}>
-        {todos.length === 0 && (
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{translate('noActivitiesYet')}</p>
+        {upcoming.length === 0 && (
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{translate('noUpcomingEvents')}</p>
         )}
-        {todos.map((item) => (
+        {upcoming.map((item) => (
           <div key={item.id} style={styles.row}>
             <div>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{item.description}</p>
