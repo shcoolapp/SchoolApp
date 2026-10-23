@@ -2,15 +2,14 @@ import { useState } from 'react';
 import { useTranslation } from '../i18n/translations';
 import { getStoredUser } from '../api/client';
 
-export default function Sidebar({ active, onSelect, announcementBadge = 0 }) {
-  const [collapsed, setCollapsed] = useState(false);
+export default function Sidebar({ active, onSelect, noticesBadge = 0 }) {
+  const [collapsed, setCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 700); // start collapsed on phones
   const t = useTranslation();
   const user = getStoredUser();
 
   const NAV_ITEMS = [
-    { key: 'todos', label: t('todoList'), icon: '/icons/todo.png', iconSize: '2rem' },
+    { key: 'notices', label: t('announcementsAndTodo'), icon: '/icons/bell.png', badge: noticesBadge },
     { key: 'calendar', label: t('calendar'), icon: '/icons/calendar.png' },
-    { key: 'announcements', label: t('announcements'), icon: '/icons/announcements.png', badge: announcementBadge },
     { key: 'homework', label: t('homework'), icon: '/icons/homework.png' },
     { key: 'marks', label: t('marks'), icon: '/icons/subjects.png' },
     // Subjects management is admin-only — hidden from regular teachers/students
