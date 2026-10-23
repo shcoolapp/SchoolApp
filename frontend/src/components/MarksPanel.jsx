@@ -13,6 +13,9 @@ export default function MarksPanel() {
   return <TeacherMarksEntry t={t} language={settings.language} />;
 }
 
+const PASS_MARK = 50;
+const isFail = (value) => value !== '—' && value !== undefined && Number(value) < PASS_MARK;
+
 function StudentReportCard({ t, language, user }) {
   const [marks, setMarks] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -41,8 +44,25 @@ function StudentReportCard({ t, language, user }) {
     return m ? m.value : '—';
   }
 
+  // (month 1 + month 2) / 2 for a term; blank until both months have a mark
+  function termAverage(subjectId, term) {
+    const a = marks.find((mk) => mk.subject_id === subjectId && mk.term === `${term}_month1`);
+    const b = marks.find((mk) => mk.subject_id === subjectId && mk.term === `${term}_month2`);
+    if (!a || !b) return '—';
+    const avg = (Number(a.value) + Number(b.value)) / 2;
+    return String(Math.round(avg * 100) / 100);
+  }
+
+  const lang = language === 'ar' ? 'ar' : 'en';
+
   return (
-    <div style={{ maxWidth: '900px' }}>
+    <div style={{ maxWidth: '1000px' }}>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
+        <button style={styles.printBtn} onClick={() => window.print()}>{t('printMarks')}</button>
+      </div>
+      <h2 className="print-only" style={{ margin: '0 0 8px', fontSize: '1.25rem' }}>
+        {t('appName')} — {t('marks')} ({new Date().toLocaleDateString()})
+      </h2>
       <div style={styles.reportHeader}>
         <div>
           <p style={styles.headerLine}><strong>{t('name')}:</strong> {user?.name}</p>
@@ -63,25 +83,35 @@ function StudentReportCard({ t, language, user }) {
             <thead>
               <tr>
                 <th style={styles.th} rowSpan={2}>{t('subjects')}</th>
-                <th style={styles.th} colSpan={2}>{TERM_LABELS.sem1[language === 'ar' ? 'ar' : 'en']}</th>
+                <th style={styles.th} colSpan={3}>{TERM_LABELS.sem1[lang]}</th>
                 <th style={styles.th} rowSpan={2}>{periodLabel('midyear', language)}</th>
-                <th style={styles.th} colSpan={2}>{TERM_LABELS.sem2[language === 'ar' ? 'ar' : 'en']}</th>
+                <th style={styles.th} colSpan={3}>{TERM_LABELS.sem2[lang]}</th>
                 <th style={styles.th} rowSpan={2}>{periodLabel('final', language)}</th>
               </tr>
               <tr>
-                <th style={styles.th}>{MONTH_LABELS.month1[language === 'ar' ? 'ar' : 'en']}</th>
-                <th style={styles.th}>{MONTH_LABELS.month2[language === 'ar' ? 'ar' : 'en']}</th>
-                <th style={styles.th}>{MONTH_LABELS.month1[language === 'ar' ? 'ar' : 'en']}</th>
-                <th style={styles.th}>{MONTH_LABELS.month2[language === 'ar' ? 'ar' : 'en']}</th>
+                <th style={styles.th}>{MONTH_LABELS.month1[lang]}</th>
+                <th style={styles.th}>{MONTH_LABELS.month2[lang]}</th>
+                <th style={styles.thAvg}>{t('average')}</th>
+                <th style={styles.th}>{MONTH_LABELS.month1[lang]}</th>
+                <th style={styles.th}>{MONTH_LABELS.month2[lang]}</th>
+                <th style={styles.thAvg}>{t('average')}</th>
               </tr>
             </thead>
             <tbody>
               {subjects.map((s) => (
                 <tr key={s.id}>
                   <td style={styles.td}>{s.name}</td>
-                  {MARK_PERIODS.map((p) => (
-                    <td key={p.key} style={styles.tdCenter}>{findMark(s.id, p.key)}</td>
-                  ))}
+                  {[
+                    ['sem1_month1', false], ['sem1_month2', false], ['sem1', true], ['midyear', false],
+                    ['sem2_month1', false], ['sem2_month2', false], ['sem2', true], ['final', false]
+                  ].map(([key, avg]) => {
+                    const value = avg ? termAverage(s.id, key) : findMark(s.id, key);
+                    return (
+                      <td key={key} style={{ ...(avg ? styles.tdAvg : styles.tdCenter), ...(isFail(value) ? styles.fail : null) }}>
+                        {value}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -287,8 +317,12 @@ const styles = {
     marginBottom: '1rem'
   },
   headerLine: { margin: '4px 0', fontSize: '0.875rem', color: 'var(--text-primary)' },
-  table: { borderCollapse: 'collapse', width: '100%', minWidth: '700px' },
+  table: { borderCollapse: 'collapse', width: '100%', minWidth: '820px' },
   th: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)', background: 'var(--surface-alt)' },
   td: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)' },
-  tdCenter: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)', textAlign: 'center' }
+  tdCenter: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)', textAlign: 'center' },
+  fail: { color: 'var(--mark-fail)', fontWeight: 700 },
+  printBtn: { border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-primary)', borderRadius: '8px', padding: '6px 14px', fontSize: '0.812rem', cursor: 'pointer' },
+  thAvg: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)', background: 'var(--cobalt-soft)' },
+  tdAvg: { border: '1px solid var(--border)', padding: '8px', fontSize: '0.8125rem', color: 'var(--text-primary)', textAlign: 'center', fontWeight: 600, background: 'var(--cobalt-soft)' }
 };

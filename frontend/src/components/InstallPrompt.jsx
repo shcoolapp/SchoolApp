@@ -44,7 +44,7 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div style={styles.box}>
+    <div className="no-print" style={styles.box}>
       <img src="/icons/icon-192.png" alt="" style={styles.icon} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <strong style={{ fontSize: '0.812rem' }}>{t('installTitle')}</strong>

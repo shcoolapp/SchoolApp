@@ -20,7 +20,7 @@ export default function Sidebar({ active, onSelect, noticesBadge = 0 }) {
   ];
 
   return (
-    <div style={{ ...styles.sidebar, width: collapsed ? '64px' : '220px' }}>
+    <div className="no-print" style={{ ...styles.sidebar, width: collapsed ? '64px' : '220px' }}>
       <button style={styles.toggle} onClick={() => setCollapsed(!collapsed)} aria-label="Toggle sidebar">
         <span style={styles.hamburger}>&#9776;</span>
       </button>
