@@ -11,7 +11,7 @@ export default function Sidebar({ active, onSelect, noticesBadge = 0 }) {
     { key: 'notices', label: t('announcementsAndTodo'), icon: '/icons/bell.png', badge: noticesBadge },
     { key: 'calendar', label: t('calendar'), icon: '/icons/calendar.png' },
     { key: 'homework', label: t('homework'), icon: '/icons/homework.png' },
-    { key: 'marks', label: t('marks'), icon: '/icons/subjects.png' },
+    { key: 'marks', label: t('marks'), icon: '/icons/marks.png' },
     // Subjects management is admin-only — hidden from regular teachers/students
     // to keep the app simpler for the people actually teaching/studying.
     ...(user?.role === 'admin' ? [{ key: 'subjects', label: t('subjects'), icon: '/icons/subjects.png' }] : []),
