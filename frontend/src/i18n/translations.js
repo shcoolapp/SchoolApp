@@ -12,6 +12,8 @@ const translations = {
     signedInAs: 'Signed in as',
 
     announcements: 'Announcements',
+    average: 'Average',
+    printMarks: 'Print marks',
     announcementsAndTodo: 'Notifications',
     upcomingEvents: 'Upcoming events',
     noUpcomingEvents: 'No upcoming events.',
@@ -191,6 +193,8 @@ const translations = {
     signedInAs: 'مسجّل الدخول باسم',
 
     announcements: 'الإعلانات',
+    average: 'المعدل',
+    printMarks: 'طباعة الدرجات',
     announcementsAndTodo: 'الإشعارات',
     upcomingEvents: 'الفعاليات القادمة',
     noUpcomingEvents: 'لا توجد فعاليات قادمة.',
