@@ -38,10 +38,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="app-shell" style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
       <Sidebar active={active} onSelect={setActive} noticesBadge={notifications.unread} />
-      <main style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <main className="app-main" style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
+        <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
             {t('signedInAs')} {user?.name} ({user?.role})
           </p>
