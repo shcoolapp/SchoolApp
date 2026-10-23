@@ -14,6 +14,7 @@
   --cal-homework: #C96A1B;
   --cal-weekend: #2B8A70;
   --cal-weekend-label: #2B8A70;
+  --mark-fail: #C62828;
   --cobalt: #24508C;
   --cobalt-soft: #E3EBF6;
   --on-cobalt: #FFFFFF;
@@ -36,6 +37,7 @@
   --cal-homework: #D47A2C;
   --cal-weekend: #2B8A70;
   --cal-weekend-label: #6CCBA0;
+  --mark-fail: #FF8A80;
   --cobalt: #3A6DB4;
   --cobalt-soft: #16305F;
   --on-cobalt: #FFFFFF;
@@ -78,4 +80,29 @@ html[dir='rtl'] body {
     padding-top: 4px !important;
     padding-bottom: 4px !important;
   }
+}
+
+/* ---- printing (the marks page): white paper, no menus, landscape ---- */
+.print-only { display: none; }
+
+@media print {
+  @page { size: A4 landscape; margin: 12mm; }
+
+  :root,
+  :root[data-theme='dark'] {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-alt: #eeeeee;
+    --border: #999999;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --cobalt-soft: #e6ecf5;
+    --mark-fail: #C62828;
+  }
+
+  body { background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+  .app-shell { display: block !important; }
+  .app-main { padding: 0 !important; }
 }
