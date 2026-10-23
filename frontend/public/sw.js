@@ -8,8 +8,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'School Portal', {
       body: data.body || '',
-      icon: '/icons/login.png',
-      badge: '/icons/login.png',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
       tag: data.tag,
       data: { url: data.url || '/dashboard' }
     })
