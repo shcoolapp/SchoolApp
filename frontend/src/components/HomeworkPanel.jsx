@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { api, getStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
 import AttemptAnswers from './AttemptAnswers';
+import { printSheet } from '../lib/printSheet';
+import { formatMark, scaled } from '../lib/mark';
 
 const BLANK_QUESTION = { questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'a' };
 const MAX_TEMPLATES = 5;
 
 // Red when the mark is under 50%
-const markStyle = (score, total) => (Number(total) > 0 && (Number(score) / Number(total)) * 100 < 50
+const markStyle = (score, total) => (Number(total) > 0 && scaled(score, total, 100) < 50
   ? { color: 'var(--mark-fail)', fontWeight: 700 }
   : { fontWeight: 600 });
 
@@ -182,6 +184,39 @@ export default function HomeworkPanel() {
     }
   }
 
+  // Teacher: print menu (which template, with or without the answer key)
+  const [printMenuFor, setPrintMenuFor] = useState(null);
+  const [printTemplate, setPrintTemplate] = useState('all');
+
+  async function printHomework(homeworkId, kind) {
+    setError('');
+    try {
+      const d = await api.getHomeworkPrintData(homeworkId);
+      const templates = printTemplate === 'all' ? d.templates : d.templates.filter((tpl) => tpl.position === Number(printTemplate));
+      printSheet({ kind, title: d.title, subjectName: d.subject_name, dueDate: d.due_date, templates }, t);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  // Student: print the questions of the attempt in progress (to work on paper)
+  function printQuiz() {
+    const hw = items.find((i) => i.id === activeQuiz.homeworkId);
+    printSheet({
+      kind: 'blank',
+      title: hw?.title || t('homework'),
+      subjectName: hw?.subject_name,
+      dueDate: hw?.due_date,
+      templates: [{
+        position: activeQuiz.templateNumber,
+        questions: activeQuiz.questions.map((q) => ({
+          id: q.id, text: q.question_text,
+          options: { a: q.option_a, b: q.option_b, c: q.option_c, d: q.option_d }
+        }))
+      }]
+    }, t);
+  }
+
   // The teacher's results panel keeps itself up to date while it is open (students submit at any moment).
   useEffect(() => {
     if (!viewingResultsFor) return undefined;
@@ -297,6 +332,7 @@ export default function HomeworkPanel() {
           {submitting ? t('submitting') : t('submit')}
         </button>
         <button onClick={() => setActiveQuiz(null)} style={styles.secondaryBtn}>{t('cancel')}</button>
+        <button onClick={printQuiz} style={styles.secondaryBtn}>🖨 {t('printQuestions')}</button>
       </div>
     );
   }
@@ -314,7 +350,7 @@ export default function HomeworkPanel() {
 
       {result && (
         <p style={styles.resultBanner}>
-          {result.isOfficial ? t('firstAttemptScore') : t('yourScore')}: {result.score} / {result.total}
+          {result.isOfficial ? t('firstAttemptScore') : t('yourScore')}: {formatMark(result.score, result.total)} ({result.score} / {result.total} {t('correctWord')})
           {!result.isOfficial && ` — ${t('practiceMode')}`}
         </p>
       )}
@@ -480,7 +516,7 @@ export default function HomeworkPanel() {
                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                   {r.submitted_at ? (
                     <>
-                      <span style={markStyle(r.score, r.total)}>{r.score} / {r.total}</span>
+                      <span style={markStyle(r.score, r.total)}>{formatMark(r.score, r.total)}</span>{` (${r.score}/${r.total})`}
                       {` · ${t('templateLabel')} ${r.template_number}`}
                     </>
                   ) : r.started_at
@@ -521,10 +557,22 @@ export default function HomeworkPanel() {
               {item.subject_name} · {t('due')} {item.due_date.slice(0, 10)}
               {item.type === 'mcq' && ` · ${item.duration_minutes ? `${item.duration_minutes} ${t('minutesShort')}` : t('noTimeLimit')}`}
             </p>
+            {user?.role === 'teacher' && item.type === 'mcq' && printMenuFor === item.id && (
+              <div style={styles.printMenu}>
+                <select value={printTemplate} onChange={(e) => setPrintTemplate(e.target.value)} style={{ ...styles.input, width: 'auto' }}>
+                  <option value="all">{t('allTemplates')}</option>
+                  {Array.from({ length: Number(item.template_count) }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>{t('templateLabel')} {i + 1}</option>
+                  ))}
+                </select>
+                <button onClick={() => printHomework(item.id, 'blank')} style={styles.secondaryBtn}>{t('printWithout')}</button>
+                <button onClick={() => printHomework(item.id, 'key')} style={styles.secondaryBtn}>{t('printWith')}</button>
+              </div>
+            )}
             {user?.role === 'student' && item.type === 'mcq' && item.my_submitted_at && (
               <>
                 <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-primary)' }}>
-                  {t('firstAttemptScore')}: <span style={markStyle(item.my_score, item.my_total)}>{item.my_score} / {item.my_total}</span>
+                  {t('firstAttemptScore')}: <span style={markStyle(item.my_score, item.my_total)}>{formatMark(item.my_score, item.my_total)}</span> <span style={{ color: 'var(--text-secondary)' }}>({item.my_score} / {item.my_total} {t('correctWord')})</span>
                 </p>
                 {item.my_attempt_id && <AttemptAnswers attemptId={item.my_attempt_id} whose="mine" />}
               </>
@@ -557,7 +605,10 @@ export default function HomeworkPanel() {
             </div>
           )}
           {user?.role === 'teacher' && item.type === 'mcq' && (
-            <button onClick={() => viewResults(item.id)} style={styles.secondaryBtn}>{t('results')}</button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={() => { setPrintTemplate('all'); setPrintMenuFor(printMenuFor === item.id ? null : item.id); }} style={styles.secondaryBtn}>🖨 {t('printHomework')}</button>
+              <button onClick={() => viewResults(item.id)} style={styles.secondaryBtn}>{t('results')}</button>
+            </div>
           )}
           {user?.role === 'student' && item.type === 'file' && (
             <label style={styles.secondaryBtn}>
@@ -613,6 +664,7 @@ const styles = {
     fontSize: '0.75rem',
     cursor: 'pointer'
   },
+  printMenu: { display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: '6px' },
   resultBanner: { padding: '10px', borderRadius: '8px', background: 'var(--nav-active-bg)', color: 'var(--text-primary)', fontSize: '0.875rem', marginBottom: '1rem' },
   submissionsPanel: { padding: '1rem', border: '1px solid var(--border)', borderRadius: '10px', marginBottom: '1rem' },
   link: { fontSize: '0.812rem', color: 'var(--accent)' },
