@@ -11,6 +11,172 @@ router.get('/structure', requireAuth, (req, res) => {
   res.json({ grades: GRADES, classrooms: CLASSROOMS });
 });
 
+// GET /api/subjects/overview — admin: every subject grouped for the School tab.
+// One row = one subject name taught by one teacher in one grade, with the classrooms it covers:
+//   Math / Mohammed / 1 Mid / [A, B, C]. `ids` are the underlying subject records (one per classroom).
+router.get('/overview', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const teachers = await pool.query("SELECT id, name, username FROM users WHERE role = 'teacher' ORDER BY name");
+    const subjects = await pool.query('SELECT id, name, grade, classroom_section, teacher_id FROM subjects');
+
+    const groups = new Map();
+    for (const s of subjects.rows) {
+      const key = `${s.grade}|${s.teacher_id}|${s.name}`;
+      if (!groups.has(key)) groups.set(key, { ids: [], name: s.name, teacherId: s.teacher_id, grade: s.grade, sections: [] });
+      const g = groups.get(key);
+      g.ids.push(s.id);
+      g.sections.push(s.classroom_section);
+    }
+    const rows = [...groups.values()]
+      .map((g) => ({ ...g, sections: [...g.sections].sort() }))
+      .sort((a, b) => GRADES.indexOf(a.grade) - GRADES.indexOf(b.grade) || a.name.localeCompare(b.name));
+
+    res.json({ teachers: teachers.rows, rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load the school overview' });
+  }
+});
+
+// POST /api/subjects/sync — admin saves the School tab (and the bulk assignment) in one go.
+// body: { dryRun?, rows: [{ clientId, ids: [subjectId...], name, teacherId, grade, sections: ['A','B'] }], deleteIds: [subjectId...] }
+//
+// A row with `ids` edits existing subject records, a row without creates new ones:
+//  - same grade, classroom kept       -> the record is updated in place (name / teacher); homework, marks, exams stay
+//  - classroom dropped, or grade changed -> that record is deleted (with its homework, marks, exams, to-dos)
+//  - classroom added                  -> a new record, and the students already in that class are enrolled
+// Everything runs in one transaction. `dryRun` runs it all and rolls back, so the client can show what would be
+// deleted (`deletions`) before the admin confirms. Any row problem answers 400 with `errors` and saves nothing.
+router.post('/sync', requireAuth, requireRole('admin'), async (req, res) => {
+  const dryRun = req.body.dryRun === true;
+  const rows = Array.isArray(req.body.rows) ? req.body.rows : [];
+  const deleteIds = new Set((Array.isArray(req.body.deleteIds) ? req.body.deleteIds : []).map(Number));
+  if (rows.length > 500) return res.status(400).json({ error: 'Too many rows in one save' });
+  if ([...deleteIds].some((id) => !Number.isInteger(id))) return res.status(400).json({ error: 'Invalid delete list' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const teacherIds = new Set((await client.query("SELECT id FROM users WHERE role = 'teacher'")).rows.map((r) => r.id));
+    const errors = [];
+    const fail = (clientId, message) => {
+      if (!errors.some((e) => e.clientId === clientId && e.message === message)) errors.push({ clientId, message });
+    };
+
+    // 1) validate every row and work out what each one means
+    const plans = [];
+    const toDelete = new Set(deleteIds);
+    for (const [i, raw] of rows.entries()) {
+      const clientId = raw.clientId ?? i;
+      const name = String(raw.name ?? '').trim().replace(/\s+/g, ' ');
+      const grade = raw.grade;
+      const teacherId = Number(raw.teacherId);
+      const sections = [...new Set(Array.isArray(raw.sections) ? raw.sections : [])];
+      const ids = [...new Set((Array.isArray(raw.ids) ? raw.ids : []).map(Number))];
+
+      if (!name) { fail(clientId, 'Subject name is required'); continue; }
+      if (name.length > 150) { fail(clientId, 'Subject name is too long'); continue; }
+      if (!isValidGrade(grade)) { fail(clientId, `Invalid grade. Must be one of: ${GRADES.join(', ')}`); continue; }
+      if (!teacherIds.has(teacherId)) { fail(clientId, 'Choose a teacher'); continue; }
+      if (sections.length === 0 || !sections.every(isValidClassroom)) { fail(clientId, `Choose at least one classroom (${CLASSROOMS.join(', ')})`); continue; }
+      if (ids.some((id) => !Number.isInteger(id))) { fail(clientId, 'Invalid row'); continue; }
+
+      const existing = ids.length ? (await client.query('SELECT * FROM subjects WHERE id = ANY($1::int[])', [ids])).rows : [];
+      if (existing.length !== ids.length) { fail(clientId, 'This row changed on the server — reload the page and try again'); continue; }
+
+      plans.push({ clientId, name, grade, teacherId, sections, existing });
+    }
+
+    const keep = [];    // { record, name, teacherId } updated in place
+    const inserts = []; // { clientId, name, grade, teacherId, section }
+    for (const p of plans) {
+      const sameGrade = p.existing.every((e) => e.grade === p.grade);
+      const have = new Set();
+      for (const e of p.existing) {
+        if (sameGrade && p.sections.includes(e.classroom_section)) {
+          keep.push({ record: e, name: p.name, teacherId: p.teacherId });
+          have.add(e.classroom_section);
+          toDelete.delete(e.id);
+        } else {
+          toDelete.add(e.id);
+        }
+      }
+      for (const section of p.sections) {
+        if (!have.has(section)) inserts.push({ clientId: p.clientId, name: p.name, grade: p.grade, teacherId: p.teacherId, section });
+      }
+    }
+
+    // 2) what is about to be lost (counted before anything is deleted)
+    const deletions = (await client.query(
+      `SELECT s.id, s.name, s.grade, s.classroom_section AS section,
+              (SELECT COUNT(*) FROM homework h WHERE h.subject_id = s.id)::int AS homework,
+              (SELECT COUNT(*) FROM marks m WHERE m.subject_id = s.id)::int AS marks,
+              (SELECT COUNT(*) FROM exams e WHERE e.subject_id = s.id)::int AS exams,
+              (SELECT COUNT(*) FROM todos t WHERE t.subject_id = s.id)::int AS todos
+       FROM subjects s WHERE s.id = ANY($1::int[]) ORDER BY s.grade, s.name, s.classroom_section`,
+      [[...toDelete]]
+    )).rows;
+
+    // 3) apply: deletes first so a removed class can be re-created in the same save
+    const out = { created: 0, updated: 0, skipped: 0, deleted: 0, enrolled: 0 };
+    if (toDelete.size > 0) {
+      const del = await client.query('DELETE FROM subjects WHERE id = ANY($1::int[])', [[...toDelete]]);
+      out.deleted = del.rowCount;
+    }
+    for (const k of keep) {
+      if (k.record.name === k.name && k.record.teacher_id === k.teacherId) continue;
+      await client.query('UPDATE subjects SET name = $2, teacher_id = $3 WHERE id = $1', [k.record.id, k.name, k.teacherId]);
+      if (k.record.teacher_id !== k.teacherId) {
+        await client.query('UPDATE todos SET teacher_id = $2 WHERE subject_id = $1', [k.record.id, k.teacherId]); // the new teacher owns the to-dos
+      }
+      out.updated++;
+    }
+    for (const ins of inserts) {
+      const added = await client.query(
+        `INSERT INTO subjects (name, grade, classroom_section, teacher_id) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (name, grade, classroom_section, teacher_id) DO NOTHING RETURNING id`,
+        [ins.name, ins.grade, ins.section, ins.teacherId]
+      );
+      if (added.rows.length === 0) { out.skipped++; continue; }
+      out.created++;
+      const enrolled = await client.query(
+        `INSERT INTO enrollments (student_id, subject_id)
+         SELECT u.id, $1 FROM users u WHERE u.role = 'student' AND u.grade = $2 AND u.classroom_section = $3
+         ON CONFLICT DO NOTHING`,
+        [added.rows[0].id, ins.grade, ins.section]
+      );
+      out.enrolled += enrolled.rowCount;
+    }
+
+    // 4) one teacher per subject per classroom (checked on the final state, so swapping teachers works)
+    for (const p of plans) {
+      for (const section of p.sections) {
+        const c = await client.query(
+          `SELECT COUNT(DISTINCT teacher_id)::int AS n FROM subjects
+           WHERE lower(btrim(name)) = lower($1) AND grade = $2 AND classroom_section = $3`,
+          [p.name, p.grade, section]
+        );
+        if (c.rows[0].n > 1) fail(p.clientId, `${p.name} · ${p.grade} ${section} would have more than one teacher`);
+      }
+    }
+
+    if (errors.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Some rows need attention', errors });
+    }
+    await client.query(dryRun ? 'ROLLBACK' : 'COMMIT');
+    res.json({ dryRun, ...out, deletions });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(err);
+    if (err.code === '23505') return res.status(409).json({ error: 'Two rows describe the same subject, teacher and classroom' });
+    res.status(500).json({ error: 'Failed to save the changes' });
+  } finally {
+    client.release();
+  }
+});
+
 // POST /api/subjects — teacher creates a subject for one grade+classroom
 router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   const { name, grade, classroomSection } = req.body;

@@ -175,6 +175,126 @@ router.post('/import', requireAuth, requireRole('admin'), upload.single('file'),
   }
 });
 
+// ---- Student import, one classroom at a time (School tab) ----
+// The admin picks the grade + classroom, uploads a sheet of names, reviews/edits the list in the browser,
+// then saves it. The sheet only holds names: grade and classroom come from the form.
+
+const MAX_STUDENTS_PER_IMPORT = 200;
+const HEADER_WORDS = new Set(['name', 'names', 'student', 'students', 'student name', 'full name', 'الاسم', 'اسم', 'اسم الطالب', 'الطالب', 'الطلاب']);
+const cleanName = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
+
+// POST /api/users/students/preview — reads the first column of an .xlsx and returns the names. Saves nothing.
+router.post('/students/preview', requireAuth, requireRole('admin'), upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) return res.status(400).json({ error: 'The file has no sheets' });
+
+    const names = [];
+    for (let i = 1; i <= sheet.rowCount; i++) {
+      const text = cleanName(sheet.getRow(i).getCell(1).text);
+      if (!text) continue;
+      if (i === 1 && HEADER_WORDS.has(text.toLowerCase())) continue; // header row
+      names.push(text);
+    }
+    if (names.length > MAX_STUDENTS_PER_IMPORT) {
+      return res.status(400).json({ error: `A classroom import is limited to ${MAX_STUDENTS_PER_IMPORT} students` });
+    }
+    res.json({ names });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: 'Could not read the file — upload an .xlsx spreadsheet' });
+  }
+});
+
+// GET /api/users/students?grade=X&classroomSection=Y — students already in a classroom
+router.get('/students', requireAuth, requireRole('admin'), async (req, res) => {
+  const { grade, classroomSection } = req.query;
+  if (!isValidGrade(grade) || !isValidClassroom(classroomSection)) {
+    return res.status(400).json({ error: 'Choose a valid grade and classroom' });
+  }
+  const result = await pool.query(
+    "SELECT id, name, username FROM users WHERE role = 'student' AND grade = $1 AND classroom_section = $2 ORDER BY name",
+    [grade, classroomSection]
+  );
+  res.json(result.rows);
+});
+
+// POST /api/users/students/import — saves the reviewed list into one classroom.
+// body: { grade, classroomSection, names: [string] }
+// A username + simple password is generated for each new student and the student is enrolled in the
+// subjects of that classroom. Names already in the classroom (or repeated in the list) are skipped, so
+// uploading the same sheet twice never creates duplicates. Returns a base64 login sheet for the new students.
+router.post('/students/import', requireAuth, requireRole('admin'), async (req, res) => {
+  const { grade, classroomSection } = req.body;
+  if (!isValidGrade(grade)) return res.status(400).json({ error: `Invalid grade. Must be one of: ${GRADES.join(', ')}` });
+  if (!isValidClassroom(classroomSection)) return res.status(400).json({ error: `Invalid classroom. Must be one of: ${CLASSROOMS.join(', ')}` });
+
+  const names = (Array.isArray(req.body.names) ? req.body.names : []).map(cleanName).filter(Boolean);
+  if (names.length === 0) return res.status(400).json({ error: 'There are no students to save' });
+  if (names.length > MAX_STUDENTS_PER_IMPORT) return res.status(400).json({ error: `A classroom import is limited to ${MAX_STUDENTS_PER_IMPORT} students` });
+  if (names.some((n) => n.length > 150)) return res.status(400).json({ error: 'A student name is too long' });
+
+  try {
+    const existing = await pool.query(
+      "SELECT name FROM users WHERE role = 'student' AND grade = $1 AND classroom_section = $2",
+      [grade, classroomSection]
+    );
+    const taken = new Set(existing.rows.map((r) => cleanName(r.name).toLowerCase()));
+
+    const results = { created: 0, skipped: 0, enrolled: 0, errors: [] };
+    const credentials = [];
+
+    for (const name of names) {
+      const key = name.toLowerCase();
+      if (taken.has(key)) { results.skipped++; continue; }
+      taken.add(key);
+
+      const username = await makeUniqueUsername(slugifyName(name) || 'student');
+      const password = generateSimplePassword();
+      const passwordHash = await bcrypt.hash(password, 10);
+      const inserted = await pool.query(
+        `INSERT INTO users (name, username, password_hash, plaintext_password, role, grade, classroom_section)
+         VALUES ($1, $2, $3, $4, 'student', $5, $6) RETURNING id`,
+        [name, username, passwordHash, password, grade, classroomSection]
+      );
+      results.created++;
+      credentials.push({ name, username, password, role: 'student', grade, classroomSection });
+
+      const enrolled = await pool.query(
+        `INSERT INTO enrollments (student_id, subject_id)
+         SELECT $1, id FROM subjects WHERE grade = $2 AND classroom_section = $3
+         ON CONFLICT DO NOTHING`,
+        [inserted.rows[0].id, grade, classroomSection]
+      );
+      results.enrolled += enrolled.rowCount;
+    }
+
+    let credentialsFile = null;
+    if (credentials.length > 0) {
+      const outWorkbook = new ExcelJS.Workbook();
+      const outSheet = outWorkbook.addWorksheet('Logins');
+      outSheet.columns = [
+        { header: 'Name', key: 'name' },
+        { header: 'Username', key: 'username' },
+        { header: 'Password', key: 'password' },
+        { header: 'Role', key: 'role' },
+        { header: 'Grade', key: 'grade' },
+        { header: 'Classroom', key: 'classroomSection' }
+      ];
+      credentials.forEach((c) => outSheet.addRow(c));
+      credentialsFile = Buffer.from(await outWorkbook.xlsx.writeBuffer()).toString('base64');
+    }
+
+    res.json({ ...results, credentialsFile });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save the students' });
+  }
+});
+
 // GET /api/users/credentials?role=student&grade=X&classroomSection=Y — teacher downloads
 // an Excel of username/password logins. Defaults to students only if no role given;
 // pass role=teacher to get teacher logins, or role=all for everyone. Available anytime,
