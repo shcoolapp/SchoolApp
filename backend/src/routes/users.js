@@ -123,7 +123,7 @@ router.post('/import', requireAuth, requireRole('admin'), upload.single('file'),
     // Build a downloadable credentials sheet for every generated login (teachers + students).
     let credentialsFileBase64 = null;
     if (generatedCredentials.length > 0) {
-      const buffer = await buildCredentialsBuffer(generatedCredentials);
+      const buffer = await buildCredentialsBuffer(generatedCredentials, { portalUrl: req.body?.portalUrl });
       credentialsFileBase64 = Buffer.from(buffer).toString('base64');
     }
 
@@ -233,7 +233,7 @@ router.post('/students/import', requireAuth, requireRole('admin'), async (req, r
 
     let credentialsFile = null;
     if (credentials.length > 0) {
-      credentialsFile = (await buildCredentialsBuffer(credentials)).toString('base64');
+      credentialsFile = (await buildCredentialsBuffer(credentials, { portalUrl: req.body.portalUrl })).toString('base64');
     }
 
     res.json({ ...results, credentialsFile });
@@ -281,7 +281,8 @@ router.get('/credentials', requireAuth, requireRole('admin'), async (req, res) =
         role: r.role,
         grade: r.grade,
         classroomSection: r.classroom_section
-      }))
+      })),
+      { portalUrl: req.query.portalUrl }
     );
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

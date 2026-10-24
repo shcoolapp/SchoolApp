@@ -61,7 +61,7 @@ export const api = {
   },
   downloadCredentials: async (grade, classroomSection, role = 'student') => {
     const token = localStorage.getItem('token');
-    const params = new URLSearchParams({ role });
+    const params = new URLSearchParams({ role, portalUrl: window.location.origin }); // portalUrl: where the QR codes point
     if (grade) params.set('grade', grade);
     if (classroomSection) params.set('classroomSection', classroomSection);
     const res = await fetch(`${BASE_URL}/users/credentials?${params}`, {

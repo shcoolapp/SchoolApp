@@ -62,7 +62,7 @@ export default function AssignTeachers({ teachers, structure, reload }) {
     }
     setBusy(true);
     try {
-      const res = await api.syncSubjects({ rows: rows.map(toPayload), deleteIds: [], returnCredentials: true });
+      const res = await api.syncSubjects({ rows: rows.map(toPayload), deleteIds: [], returnCredentials: true, portalUrl: window.location.origin });
       if (res.credentialsFile) downloadBase64Xlsx(res.credentialsFile, 'teacher-logins.xlsx');
       setRows([]); setIssues({}); setFlagged({});
       setMessage(

@@ -49,7 +49,8 @@ router.get('/overview', requireAuth, requireRole('admin'), async (req, res) => {
 // A row names its teacher with `teacherId`, or with `newTeacherName` (a teacher read from an Excel sheet who has no
 // account yet). A new name is matched to an existing teacher of that name, otherwise the teacher is created in this
 // same transaction with a generated username + simple password. With `returnCredentials` the response carries a
-// base64 .xlsx login sheet (`credentialsFile`) of every teacher used by the saved rows.
+// base64 .xlsx login sheet (`credentialsFile`) of every teacher used by the saved rows,
+// with a QR code per teacher that opens the portal at `portalUrl` with the login filled in.
 //
 // A row with `ids` edits existing subject records, a row without creates new ones:
 //  - same grade, classroom kept       -> the record is updated in place (name / teacher); homework, marks, exams stay
@@ -218,7 +219,10 @@ router.post('/sync', requireAuth, requireRole('admin'), async (req, res) => {
         [usedIds]
       )).rows;
       if (logins.length > 0) {
-        const buffer = await buildCredentialsBuffer(logins.map((l) => ({ name: l.name, username: l.username, password: l.plaintext_password, role: 'teacher' })));
+        const buffer = await buildCredentialsBuffer(
+          logins.map((l) => ({ name: l.name, username: l.username, password: l.plaintext_password, role: 'teacher' })),
+          { portalUrl: req.body.portalUrl }
+        );
         credentialsFile = buffer.toString('base64');
       }
     }

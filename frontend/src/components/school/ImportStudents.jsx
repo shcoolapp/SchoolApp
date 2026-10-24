@@ -67,7 +67,7 @@ export default function ImportStudents({ structure, onSaved }) {
     const names = list.filter((_, i) => statuses[i] === 'new').map((r) => r.name.trim());
     setBusy(true);
     try {
-      const res = await api.importStudents({ grade, classroomSection: section, names });
+      const res = await api.importStudents({ grade, classroomSection: section, names, portalUrl: window.location.origin });
       if (res.credentialsFile) downloadBase64Xlsx(res.credentialsFile, `student-logins-${grade.replace(/\s+/g, '')}-${section}.xlsx`);
       setList([]);
       setMessage(`${t('scSaved')} ${t('created')} ${res.created}, ${t('skipped')} ${res.skipped} (${t('alreadyExisted')}), ${t('enrolled')} ${res.enrolled}.${res.credentialsFile ? ` ${t('loginSheetDownloaded')}` : ''}`);

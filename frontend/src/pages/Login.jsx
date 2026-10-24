@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, setToken, setStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
@@ -6,14 +6,26 @@ import DoorScene from '../components/doorScene/DoorScene';
 import { paletteVars } from '../components/doorScene/doorConfig';
 import '../components/doorScene/doorLogin.css';
 
+// A login QR code opens the portal as  https://portal/#u=<username>&p=<password>.
+// The part after # never reaches the server. Read it once to pre-fill the form.
+function credentialsFromLink() {
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return { username: params.get('u') || '', password: params.get('p') || '' };
+}
+
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState(() => credentialsFromLink().username);
+  const [password, setPassword] = useState(() => credentialsFromLink().password);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const t = useTranslation();
   const door = useRef(null);
+
+  // Remove the credentials from the address bar (and history) right after they are read.
+  useEffect(() => {
+    if (window.location.hash) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
