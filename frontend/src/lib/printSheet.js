@@ -2,13 +2,14 @@ import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import PrintSheet from '../components/PrintSheet';
 
-let mounted = null; // { root, node }
+let mounted = null; // { root, node, style }
 
 function cleanup() {
   document.body.classList.remove('printing-sheet');
   if (mounted) {
     mounted.root.unmount();
     mounted.node.remove();
+    mounted.style.remove();
     mounted = null;
   }
 }
@@ -26,8 +27,12 @@ export function printSheet(sheet, t) {
   };
   const node = document.createElement('div');
   document.body.appendChild(node);
+  // the rest of the app prints landscape (marks page); a worksheet is portrait
+  const style = document.createElement('style');
+  style.textContent = '@media print { @page { size: A4 portrait; margin: 15mm; } }';
+  document.head.appendChild(style);
   const root = createRoot(node);
-  mounted = { root, node };
+  mounted = { root, node, style };
   root.render(createElement(PrintSheet, { sheet: { ...sheet, dir: document.documentElement.dir || 'ltr' }, L }));
 
   // wait for React to paint the sheet, then print; clean up when the dialog closes
@@ -36,4 +41,20 @@ export function printSheet(sheet, t) {
     window.addEventListener('afterprint', cleanup, { once: true });
     window.print();
   }));
+}
+
+// Prints a finished attempt (the student's answers, the correct ones and the degrees).
+// d: the response of api.getAttemptAnswers; whose: 'mine' (student) or 'student' (teacher).
+export function printAttempt(d, whose, t) {
+  printSheet({
+    kind: 'graded',
+    whose,
+    title: d.title,
+    subjectName: d.subjectName,
+    dueDate: d.dueDate,
+    studentName: d.studentName,
+    score: d.score,
+    total: d.total,
+    templates: [{ position: d.templateNumber, questions: d.questions }]
+  }, t);
 }
