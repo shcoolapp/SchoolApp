@@ -13,8 +13,22 @@ async function request(path, options = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(data.error || `Request failed (${res.status})`);
+    const err = new Error(data.error || `Request failed (${res.status})`);
+    err.data = data; // e.g. per-row `errors` from /subjects/sync
+    throw err;
   }
+  return data;
+}
+
+// multipart upload (Excel files)
+async function upload(path, formData) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: formData
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
   return data;
 }
 
@@ -26,18 +40,13 @@ export const api = {
   getSchoolStructure: () => request('/subjects/structure'),
   createSubject: (name, grade, classroomSection) =>
     request('/subjects', { method: 'POST', body: JSON.stringify({ name, grade, classroomSection }) }),
-  importSubjects: (formData) => {
-    const token = localStorage.getItem('token');
-    return fetch(`${BASE_URL}/subjects/import`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData
-    }).then(async (res) => {
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-      return data;
-    });
-  },
+  getSchoolOverview: () => request('/subjects/overview'),
+  syncSubjects: (payload) => request('/subjects/sync', { method: 'POST', body: JSON.stringify(payload) }),
+  previewSubjectImport: (formData) => upload('/subjects/import', formData),
+  previewStudentImport: (formData) => upload('/users/students/preview', formData),
+  getClassStudents: (grade, classroomSection) =>
+    request(`/users/students?grade=${encodeURIComponent(grade)}&classroomSection=${encodeURIComponent(classroomSection)}`),
+  importStudents: (payload) => request('/users/students/import', { method: 'POST', body: JSON.stringify(payload) }),
   importUsers: (formData) => {
     const token = localStorage.getItem('token');
     return fetch(`${BASE_URL}/users/import`, {
