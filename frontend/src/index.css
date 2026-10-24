@@ -106,3 +106,29 @@ html[dir='rtl'] body {
   .app-shell { display: block !important; }
   .app-main { padding: 0 !important; }
 }
+
+/* ---- homework paper sheet (lib/printSheet.js): never seen on screen; while printing it is the only thing on the page ---- */
+.print-sheet { display: none; }
+
+@media print {
+  body.printing-sheet #root { display: none !important; }
+  body.printing-sheet .print-sheet { display: block; color: #000; background: #fff; font-size: 12pt; line-height: 1.45; }
+
+  .ps-head { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+  .ps-school { font-size: 10pt; color: #333; }
+  .ps-title { font-size: 18pt; margin: 2px 0 6px; }
+  .ps-meta, .ps-student { display: flex; flex-wrap: wrap; gap: 6px 24px; margin-top: 4px; }
+  .ps-student { margin-top: 10px; }
+  .ps-badge { border: 1px solid #000; padding: 0 8px; border-radius: 4px; font-weight: 700; }
+  .ps-score { font-weight: 700; }
+  .ps-tpl { font-size: 14pt; margin: 16px 0 8px; }
+  .ps-q { break-inside: avoid; margin-bottom: 12px; }
+  .ps-qhead { display: flex; justify-content: space-between; gap: 12px; font-weight: 600; margin-bottom: 4px; }
+  .ps-deg { white-space: nowrap; font-weight: 700; }
+  .ps-opt { display: flex; align-items: baseline; gap: 8px; padding: 1px 6px; margin-inline-start: 14px; border: 1px solid transparent; border-radius: 4px; }
+  .ps-box { width: 1.2em; text-align: center; flex: none; }
+  .ps-correct { background: #E3F1E4; border-color: #2E7D32; }
+  .ps-wrong { border-color: #C62828; color: #C62828; }
+  .ps-note { font-size: 10pt; color: #333; }
+  .ps-wrong .ps-note { color: #C62828; }
+}
