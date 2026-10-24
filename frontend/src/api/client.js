@@ -95,6 +95,7 @@ export const api = {
   submitHomeworkAnswers: (homeworkId, attemptId, answers) =>
     request(`/homework/${homeworkId}/submit`, { method: 'POST', body: JSON.stringify({ attemptId, answers }) }),
   getHomeworkResults: (homeworkId) => request(`/homework/${homeworkId}/results`),
+  getHomeworkPrintData: (homeworkId) => request(`/homework/${homeworkId}/print`),
   getAttemptAnswers: (attemptId) => request(`/homework/attempt/${attemptId}`),
   getSubjectExams: (subjectId) => request(`/exams/subject/${subjectId}`),
 
