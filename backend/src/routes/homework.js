@@ -333,7 +333,7 @@ router.get('/:id/results', requireAuth, requireRole('teacher'), async (req, res)
 
   const result = await pool.query(
     `SELECT u.id AS student_id, u.name AS student_name,
-            a.score, a.total, a.started_at, a.submitted_at, t.position AS template_number,
+            a.id AS attempt_id, a.score, a.total, a.started_at, a.submitted_at, t.position AS template_number,
             (SELECT COUNT(*) FROM homework_attempts p
               WHERE p.homework_id = $1 AND p.student_id = u.id AND p.attempt_no > 1) AS practice_attempts
      FROM enrollments e
@@ -429,6 +429,63 @@ async function cleanupExpiredHomeworkFiles(graceDays = 14) {
   return expired.rows.length;
 }
 
+// GET /api/homework/attempt/:attemptId — the questions of a finished attempt with the chosen and the correct answer.
+// Allowed for the student who made the attempt (only once it is submitted) and for the teacher of the subject.
+router.get('/attempt/:attemptId', requireAuth, async (req, res) => {
+  try {
+    const attemptId = Number(req.params.attemptId);
+    const a = await pool.query(
+      `SELECT a.*, h.title, h.subject_id, s.teacher_id, u.name AS student_name
+       FROM homework_attempts a
+       JOIN homework h ON h.id = a.homework_id
+       JOIN subjects s ON s.id = h.subject_id
+       JOIN users u ON u.id = a.student_id
+       WHERE a.id = $1`,
+      [attemptId]
+    );
+    const attempt = a.rows[0];
+    if (!attempt) return res.status(404).json({ error: 'Attempt not found' });
+
+    const isOwnerStudent = req.user.role === 'student' && attempt.student_id === req.user.id;
+    const isTeacher = req.user.role === 'teacher' && attempt.teacher_id === req.user.id;
+    if (!isOwnerStudent && !isTeacher) return res.status(403).json({ error: 'Not allowed' });
+
+    await expireOverdueAttempts(pool, { homeworkId: attempt.homework_id });
+    const fresh = await pool.query('SELECT submitted_at, score, total FROM homework_attempts WHERE id = $1', [attemptId]);
+    if (fresh.rows[0].submitted_at === null) {
+      return res.status(400).json({ error: 'This attempt is not finished yet' }); // answers stay hidden while it is open
+    }
+
+    const questions = await pool.query(
+      `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option,
+              ans.selected_option
+       FROM homework_questions q
+       LEFT JOIN homework_attempt_answers ans ON ans.question_id = q.id AND ans.attempt_id = $1
+       WHERE q.template_id = $2
+       ORDER BY q.order_index, q.id`,
+      [attemptId, attempt.template_id]
+    );
+    res.json({
+      attemptId,
+      title: attempt.title,
+      studentName: attempt.student_name,
+      isOfficial: attempt.attempt_no === 1,
+      score: fresh.rows[0].score,
+      total: fresh.rows[0].total,
+      questions: questions.rows.map((q) => ({
+        id: q.id,
+        text: q.question_text,
+        options: { a: q.option_a, b: q.option_b, c: q.option_c, d: q.option_d },
+        selected: q.selected_option,
+        correct: q.correct_option
+      }))
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load the answers' });
+  }
+});
+
 // GET /api/homework/subject/:id — list homework for a subject (teacher who owns it, or enrolled student)
 router.get('/subject/:id', requireAuth, async (req, res) => {
   const subjectId = req.params.id;
@@ -447,7 +504,7 @@ router.get('/subject/:id', requireAuth, async (req, res) => {
   const result = await pool.query(
     `SELECT h.*,
             (SELECT COUNT(*) FROM homework_templates t WHERE t.homework_id = h.id) AS template_count,
-            oa.score AS my_score, oa.total AS my_total,
+            oa.id AS my_attempt_id, oa.score AS my_score, oa.total AS my_total,
             oa.started_at AS my_started_at, oa.submitted_at AS my_submitted_at
      FROM homework h
      LEFT JOIN homework_attempts oa ON oa.homework_id = h.id AND oa.student_id = $2 AND oa.attempt_no = 1
