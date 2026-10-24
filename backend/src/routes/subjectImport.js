@@ -35,7 +35,8 @@ function parseSections(raw) {
 //   Teacher    = the teacher's name or username
 //   Classrooms = one or several, e.g. "A,B,C" (a single classroom per row, one row per classroom, also works)
 // A first row that looks like a header is skipped. Rows whose teacher cannot be matched come back with
-// teacherId = null so the browser can ask the admin to pick one.
+// teacherId = null: `newTeacher` when no teacher has that name (saving creates the account and a login),
+// `teacherAmbiguous` when several teachers share it (the admin must pick one).
 router.post('/import', requireAuth, requireRole('admin'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
@@ -64,10 +65,16 @@ router.post('/import', requireAuth, requireRole('admin'), upload.single('file'),
 
       if (i === 1 && /^(teacher|teacherusername|المعلم|معلم|اسم المعلم)$/i.test(teacherText.replace(/\s+/g, ' '))) continue; // header
 
-      const match = byUsername.get(norm(teacherText)) || byName.get(norm(teacherText)) || null;
+      const byUser = byUsername.get(norm(teacherText));
+      const nameHit = byName.get(norm(teacherText)); // undefined = no such name, null = several teachers share it
+      const match = byUser || nameHit || null;
       rows.push({
         teacherText,
         teacherId: match ? match.id : null,
+        // no teacher of that name yet: saving will create the account and hand out a login
+        newTeacher: !match && nameHit === undefined && !!teacherText,
+        // two or more teachers have this name: the admin has to say which one
+        teacherAmbiguous: !match && nameHit === null,
         name,
         grade: matchGrade(gradeText),
         sections: parseSections(sectionsText)

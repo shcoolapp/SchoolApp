@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 import { api } from '../../api/client';
 import { useTranslation } from '../../i18n/translations';
-import { RowsEditor, blankRow, hasIssues, newUid, rowIssues, styles, toPayload } from './shared';
+import { downloadBase64Xlsx } from '../../lib/download';
+import { RowsEditor, blankRow, hasIssues, isNewTeacher, newUid, rowIssues, styles, toPayload } from './shared';
 
 // Section 2: assign teachers to subjects in bulk — by hand, or from an Excel file that is loaded
 // into the editable table first. Saving only adds assignments; it never removes or duplicates existing ones.
@@ -22,6 +23,7 @@ export default function AssignTeachers({ teachers, structure, reload }) {
   const remove = (uid) => setRows((prev) => prev.filter((r) => r.uid !== uid));
 
   // rows that cannot be saved yet (the "Excel said …" notes disappear once the cell is fixed)
+  const newTeacherCount = new Set(rows.filter(isNewTeacher).map((r) => r.teacherText.trim().replace(/\s+/g, ' ').toLowerCase())).size;
   const bad = rows.filter((r) => hasIssues(rowIssues(r, t)) || issues[r.uid]);
 
   async function handleFile(e) {
@@ -38,7 +40,7 @@ export default function AssignTeachers({ teachers, structure, reload }) {
         const invalid = p.sections.filter((c) => !structure.classrooms.includes(c));
         const gradeOk = structure.grades.includes(p.grade);
         return {
-          ...blankRow(gradeOk ? p.grade : ''), uid: newUid(), name: p.name, teacherId: p.teacherId ?? '', teacherText: p.teacherId ? '' : p.teacherText,
+          ...blankRow(gradeOk ? p.grade : ''), uid: newUid(), name: p.name, teacherId: p.teacherId ?? '', teacherText: p.teacherId ? '' : p.teacherText, teacherAmbiguous: !!p.teacherAmbiguous,
           gradeText: gradeOk ? '' : p.grade, sections: validSections, badSections: invalid.join(', ')
         };
       });
@@ -60,9 +62,14 @@ export default function AssignTeachers({ teachers, structure, reload }) {
     }
     setBusy(true);
     try {
-      const res = await api.syncSubjects({ rows: rows.map(toPayload), deleteIds: [] });
+      const res = await api.syncSubjects({ rows: rows.map(toPayload), deleteIds: [], returnCredentials: true });
+      if (res.credentialsFile) downloadBase64Xlsx(res.credentialsFile, 'teacher-logins.xlsx');
       setRows([]); setIssues({}); setFlagged({});
-      setMessage(`${t('scSaved')} ${t('created')} ${res.created}, ${t('skipped')} ${res.skipped} (${t('alreadyExisted')}), ${t('enrolled')} ${res.enrolled}.`);
+      setMessage(
+        `${t('scSaved')} ${t('created')} ${res.created}, ${t('skipped')} ${res.skipped} (${t('alreadyExisted')}), ${t('enrolled')} ${res.enrolled}.`
+        + (res.teachersCreated ? ` ${res.teachersCreated} ${t('scTeachersCreated')}` : '')
+        + (res.credentialsFile ? ` ${t('teacherLoginSheetDownloaded')}` : '')
+      );
       await reload();
     } catch (err) {
       if (err.data?.errors) {
@@ -91,6 +98,7 @@ export default function AssignTeachers({ teachers, structure, reload }) {
         {rows.length > 0 && (
           <span style={styles.note}>
             {rows.length} {t('scRowsCount')}{bad.length > 0 && ` · ${bad.length} ${t('scNeedAttention')}`}
+            {newTeacherCount > 0 && ` · ${newTeacherCount} ${t('scNewTeachersCount')}`}
           </span>
         )}
       </div>

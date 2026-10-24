@@ -5,40 +5,10 @@ const ExcelJS = require('exceljs');
 const pool = require('../db/pool');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { isValidGrade, isValidClassroom, GRADES, CLASSROOMS } = require('../utils/schoolStructure');
+const { slugifyName, generateSimplePassword, makeUniqueUsername, buildCredentialsBuffer } = require('../utils/credentials');
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
-
-// Turns a full name into a lowercase, no-space username base, e.g. "Ali Hassan" -> "ali_hassan"
-function slugifyName(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u0600-\u06FF\s]/g, '') // keep letters/numbers/Arabic script, drop punctuation
-    .replace(/\s+/g, '_');
-}
-
-// Generates a simple 4-character password: 2 random lowercase letters + 2 random digits, e.g. "kd47"
-function generateSimplePassword() {
-  const letters = 'abcdefghijklmnopqrstuvwxyz';
-  const l1 = letters[Math.floor(Math.random() * letters.length)];
-  const l2 = letters[Math.floor(Math.random() * letters.length)];
-  const n1 = Math.floor(Math.random() * 10);
-  const n2 = Math.floor(Math.random() * 10);
-  return `${l1}${l2}${n1}${n2}`;
-}
-
-// Ensures a username is unique by appending an incrementing number if needed.
-async function makeUniqueUsername(base) {
-  let candidate = base;
-  let suffix = 1;
-  while (true) {
-    const existing = await pool.query('SELECT id FROM users WHERE username = $1', [candidate]);
-    if (existing.rows.length === 0) return candidate;
-    suffix += 1;
-    candidate = `${base}${suffix}`;
-  }
-}
 
 // Maps common Arabic role labels to the internal English role values.
 // Lets teachers upload rosters exactly as they already have them, without
@@ -153,18 +123,7 @@ router.post('/import', requireAuth, requireRole('admin'), upload.single('file'),
     // Build a downloadable credentials sheet for every generated login (teachers + students).
     let credentialsFileBase64 = null;
     if (generatedCredentials.length > 0) {
-      const outWorkbook = new ExcelJS.Workbook();
-      const outSheet = outWorkbook.addWorksheet('Logins');
-      outSheet.columns = [
-        { header: 'Name', key: 'name' },
-        { header: 'Username', key: 'username' },
-        { header: 'Password', key: 'password' },
-        { header: 'Role', key: 'role' },
-        { header: 'Grade', key: 'grade' },
-        { header: 'Classroom', key: 'classroomSection' }
-      ];
-      generatedCredentials.forEach((c) => outSheet.addRow(c));
-      const buffer = await outWorkbook.xlsx.writeBuffer();
+      const buffer = await buildCredentialsBuffer(generatedCredentials);
       credentialsFileBase64 = Buffer.from(buffer).toString('base64');
     }
 
@@ -274,18 +233,7 @@ router.post('/students/import', requireAuth, requireRole('admin'), async (req, r
 
     let credentialsFile = null;
     if (credentials.length > 0) {
-      const outWorkbook = new ExcelJS.Workbook();
-      const outSheet = outWorkbook.addWorksheet('Logins');
-      outSheet.columns = [
-        { header: 'Name', key: 'name' },
-        { header: 'Username', key: 'username' },
-        { header: 'Password', key: 'password' },
-        { header: 'Role', key: 'role' },
-        { header: 'Grade', key: 'grade' },
-        { header: 'Classroom', key: 'classroomSection' }
-      ];
-      credentials.forEach((c) => outSheet.addRow(c));
-      credentialsFile = Buffer.from(await outWorkbook.xlsx.writeBuffer()).toString('base64');
+      credentialsFile = (await buildCredentialsBuffer(credentials)).toString('base64');
     }
 
     res.json({ ...results, credentialsFile });
@@ -295,63 +243,54 @@ router.post('/students/import', requireAuth, requireRole('admin'), async (req, r
   }
 });
 
-// GET /api/users/credentials?role=student&grade=X&classroomSection=Y — teacher downloads
-// an Excel of username/password logins. Defaults to students only if no role given;
-// pass role=teacher to get teacher logins, or role=all for everyone. Available anytime,
-// not just at import time.
+// GET /api/users/credentials?role=student|teacher|all&grade=X&classroomSection=Y
+// Admin re-downloads an Excel of username/password logins at any time, not just at import time.
+// role defaults to students; grade / classroomSection only narrow the student list (teachers have neither).
 router.get('/credentials', requireAuth, requireRole('admin'), async (req, res) => {
-  const { grade, classroomSection, role } = req.query;
-
-  let query = `SELECT name, username, plaintext_password, role, grade, classroom_section
-               FROM users WHERE plaintext_password IS NOT NULL`;
-  const params = [];
-
-  if (!role || role === 'student') {
-    params.push('student');
-    query += ` AND role = $${params.length}`;
-  } else if (role === 'teacher') {
-    params.push('teacher');
-    query += ` AND role = $${params.length}`;
+  const { grade, classroomSection } = req.query;
+  const role = req.query.role || 'student';
+  if (!['student', 'teacher', 'all'].includes(role)) {
+    return res.status(400).json({ error: 'role must be student, teacher or all' });
   }
-  // role=all: no role filter added
 
-  if (grade) {
-    params.push(grade);
-    query += ` AND grade = $${params.length}`;
+  try {
+    let query = `SELECT name, username, plaintext_password, role, grade, classroom_section
+                 FROM users WHERE plaintext_password IS NOT NULL AND role IN ('student', 'teacher')`;
+    const params = [];
+
+    if (role !== 'all') {
+      params.push(role);
+      query += ` AND role = $${params.length}`;
+    }
+    if (grade) {
+      params.push(grade);
+      query += ` AND grade = $${params.length}`;
+    }
+    if (classroomSection) {
+      params.push(classroomSection);
+      query += ` AND classroom_section = $${params.length}`;
+    }
+    query += ' ORDER BY role DESC, grade, classroom_section, name'; // teachers first, then students by class
+
+    const result = await pool.query(query, params);
+    const buffer = await buildCredentialsBuffer(
+      result.rows.map((r) => ({
+        name: r.name,
+        username: r.username,
+        password: r.plaintext_password,
+        role: r.role,
+        grade: r.grade,
+        classroomSection: r.classroom_section
+      }))
+    );
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${role}-logins.xlsx"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to build the login sheet' });
   }
-  if (classroomSection) {
-    params.push(classroomSection);
-    query += ` AND classroom_section = $${params.length}`;
-  }
-  query += ' ORDER BY role, grade, classroom_section, name';
-
-  const result = await pool.query(query, params);
-
-  const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Logins');
-  sheet.columns = [
-    { header: 'Name', key: 'name' },
-    { header: 'Username', key: 'username' },
-    { header: 'Password', key: 'password' },
-    { header: 'Role', key: 'role' },
-    { header: 'Grade', key: 'grade' },
-    { header: 'Classroom', key: 'classroomSection' }
-  ];
-  result.rows.forEach((r) =>
-    sheet.addRow({
-      name: r.name,
-      username: r.username,
-      password: r.plaintext_password,
-      role: r.role,
-      grade: r.grade,
-      classroomSection: r.classroom_section
-    })
-  );
-
-  const buffer = await workbook.xlsx.writeBuffer();
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename="logins.xlsx"');
-  res.send(buffer);
 });
 
 module.exports = router;

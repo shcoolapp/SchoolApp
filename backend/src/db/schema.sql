@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   username VARCHAR(150) UNIQUE NOT NULL,
   email VARCHAR(150) UNIQUE,
   password_hash TEXT NOT NULL,
-  plaintext_password TEXT, -- stored only for students, so teachers can re-download credentials anytime
+  plaintext_password TEXT, -- stored for teachers and students, so an admin can re-download logins anytime (NULL for admins)
   role VARCHAR(10) NOT NULL CHECK (role IN ('teacher', 'student', 'admin')),
   grade VARCHAR(50),
   classroom_section VARCHAR(10),

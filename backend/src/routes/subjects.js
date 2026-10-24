@@ -1,9 +1,14 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const pool = require('../db/pool');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { GRADES, CLASSROOMS, isValidGrade, isValidClassroom } = require('../utils/schoolStructure');
+const { slugifyName, generateSimplePassword, makeUniqueUsername, buildCredentialsBuffer } = require('../utils/credentials');
 
 const router = express.Router();
+
+// Case/space-insensitive key for matching teacher names
+const nameKey = (v) => String(v ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 // GET /api/subjects/structure — returns the canonical grade/classroom lists,
 // so the frontend can render dropdowns instead of free-text fields.
@@ -39,7 +44,12 @@ router.get('/overview', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // POST /api/subjects/sync — admin saves the School tab (and the bulk assignment) in one go.
-// body: { dryRun?, rows: [{ clientId, ids: [subjectId...], name, teacherId, grade, sections: ['A','B'] }], deleteIds: [subjectId...] }
+// body: { dryRun?, returnCredentials?, rows: [{ clientId, ids: [subjectId...], name, teacherId, newTeacherName?, grade, sections: ['A','B'] }], deleteIds: [subjectId...] }
+//
+// A row names its teacher with `teacherId`, or with `newTeacherName` (a teacher read from an Excel sheet who has no
+// account yet). A new name is matched to an existing teacher of that name, otherwise the teacher is created in this
+// same transaction with a generated username + simple password. With `returnCredentials` the response carries a
+// base64 .xlsx login sheet (`credentialsFile`) of every teacher used by the saved rows.
 //
 // A row with `ids` edits existing subject records, a row without creates new ones:
 //  - same grade, classroom kept       -> the record is updated in place (name / teacher); homework, marks, exams stay
@@ -58,7 +68,15 @@ router.post('/sync', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const teacherIds = new Set((await client.query("SELECT id FROM users WHERE role = 'teacher'")).rows.map((r) => r.id));
+    const teacherRows = (await client.query("SELECT id, name FROM users WHERE role = 'teacher'")).rows;
+    const teacherIds = new Set(teacherRows.map((r) => r.id));
+    const teachersByName = new Map(); // name key -> [teacher ids]
+    for (const tr of teacherRows) {
+      const k = nameKey(tr.name);
+      teachersByName.set(k, [...(teachersByName.get(k) || []), tr.id]);
+    }
+    const newTeachers = new Map(); // name key -> id of the teacher created during this save
+    const createdLogins = []; // login rows of the teachers created during this save
     const errors = [];
     const fail = (clientId, message) => {
       if (!errors.some((e) => e.clientId === clientId && e.message === message)) errors.push({ clientId, message });
@@ -71,14 +89,39 @@ router.post('/sync', requireAuth, requireRole('admin'), async (req, res) => {
       const clientId = raw.clientId ?? i;
       const name = String(raw.name ?? '').trim().replace(/\s+/g, ' ');
       const grade = raw.grade;
-      const teacherId = Number(raw.teacherId);
+      let teacherId = Number(raw.teacherId);
       const sections = [...new Set(Array.isArray(raw.sections) ? raw.sections : [])];
       const ids = [...new Set((Array.isArray(raw.ids) ? raw.ids : []).map(Number))];
 
       if (!name) { fail(clientId, 'Subject name is required'); continue; }
       if (name.length > 150) { fail(clientId, 'Subject name is too long'); continue; }
       if (!isValidGrade(grade)) { fail(clientId, `Invalid grade. Must be one of: ${GRADES.join(', ')}`); continue; }
-      if (!teacherIds.has(teacherId)) { fail(clientId, 'Choose a teacher'); continue; }
+      if (!teacherIds.has(teacherId)) {
+        const newName = String(raw.newTeacherName ?? '').trim().replace(/\s+/g, ' ');
+        if (!newName) { fail(clientId, 'Choose a teacher'); continue; }
+        if (newName.length > 150) { fail(clientId, 'Teacher name is too long'); continue; }
+        const key = nameKey(newName);
+        const sameName = teachersByName.get(key) || [];
+        if (sameName.length > 1) { fail(clientId, `More than one teacher is called "${newName}" — choose which one`); continue; }
+        if (sameName.length === 1) {
+          teacherId = sameName[0];
+        } else if (newTeachers.has(key)) {
+          teacherId = newTeachers.get(key); // the same new teacher appears on several rows
+        } else {
+          const username = await makeUniqueUsername(slugifyName(newName) || 'teacher', client);
+          const password = generateSimplePassword();
+          const passwordHash = await bcrypt.hash(password, 10);
+          const inserted = await client.query(
+            `INSERT INTO users (name, username, password_hash, plaintext_password, role)
+             VALUES ($1, $2, $3, $4, 'teacher') RETURNING id`,
+            [newName, username, passwordHash, password]
+          );
+          teacherId = inserted.rows[0].id;
+          newTeachers.set(key, teacherId);
+          createdLogins.push({ id: teacherId });
+        }
+        teacherIds.add(teacherId);
+      }
       if (sections.length === 0 || !sections.every(isValidClassroom)) { fail(clientId, `Choose at least one classroom (${CLASSROOMS.join(', ')})`); continue; }
       if (ids.some((id) => !Number.isInteger(id))) { fail(clientId, 'Invalid row'); continue; }
 
@@ -165,8 +208,23 @@ router.post('/sync', requireAuth, requireRole('admin'), async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Some rows need attention', errors });
     }
+
+    // login sheet for every teacher used by the saved rows (new teachers and existing ones alike)
+    let credentialsFile = null;
+    if (!dryRun && req.body.returnCredentials === true) {
+      const usedIds = [...new Set(plans.map((p) => p.teacherId))];
+      const logins = (await client.query(
+        "SELECT name, username, plaintext_password FROM users WHERE id = ANY($1::int[]) AND plaintext_password IS NOT NULL ORDER BY name",
+        [usedIds]
+      )).rows;
+      if (logins.length > 0) {
+        const buffer = await buildCredentialsBuffer(logins.map((l) => ({ name: l.name, username: l.username, password: l.plaintext_password, role: 'teacher' })));
+        credentialsFile = buffer.toString('base64');
+      }
+    }
+
     await client.query(dryRun ? 'ROLLBACK' : 'COMMIT');
-    res.json({ dryRun, ...out, deletions });
+    res.json({ dryRun, ...out, teachersCreated: createdLogins.length, deletions, credentialsFile });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     console.error(err);

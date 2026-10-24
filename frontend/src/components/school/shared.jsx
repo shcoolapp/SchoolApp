@@ -24,15 +24,19 @@ export function isDirty(row) {
     || row.grade !== row.orig.grade || row.sections.join() !== row.orig.sections.join();
 }
 
+// A teacher read from Excel who has no account yet (no teacherId, but a name): the server creates the account on save.
+export const isNewTeacher = (row) => !row.teacherId && !row.teacherAmbiguous && !!row.teacherText?.trim();
+
 export const toPayload = (row) => ({
-  clientId: row.uid, ids: row.ids, name: row.name.trim(), teacherId: Number(row.teacherId), grade: row.grade, sections: row.sections
+  clientId: row.uid, ids: row.ids, name: row.name.trim(), teacherId: Number(row.teacherId), grade: row.grade, sections: row.sections,
+  ...(isNewTeacher(row) ? { newTeacherName: row.teacherText.trim() } : null)
 });
 
 // Problems the browser can already see, per field (the server checks again when saving)
 export function rowIssues(row, t) {
   const out = {};
   if (!row.name.trim()) out.name = t('scIssueName');
-  if (!row.teacherId) out.teacher = t('scIssueTeacher');
+  if (!row.teacherId && !isNewTeacher(row)) out.teacher = row.teacherAmbiguous ? t('scIssueTeacherAmbiguous') : t('scIssueTeacher');
   if (!row.grade) out.grade = t('scIssueGrade');
   if (row.sections.length === 0) out.sections = t('scIssueClassrooms');
   return out;
@@ -115,13 +119,14 @@ export function RowsEditor({ rows, teachers, structure, onChange, onRemove, onUn
                       value={row.teacherId}
                       disabled={off}
                       onChange={(e) => onChange(row.uid, { teacherId: e.target.value ? Number(e.target.value) : '' })}
-                      style={{ ...styles.input, ...(field.teacher || (!row.teacherId && row.teacherText) ? styles.inputBad : null) }}
+                      style={{ ...styles.input, ...(field.teacher || (!row.teacherId && row.teacherAmbiguous) ? styles.inputBad : null) }}
                     >
-                      <option value="">{t('scPickTeacher')}</option>
+                      <option value="">{isNewTeacher(row) ? `＋ ${row.teacherText}` : t('scPickTeacher')}</option>
                       {teachers.map((tc) => <option key={tc.id} value={tc.id}>{tc.name}</option>)}
                     </select>
                     {field.teacher && <div style={styles.issue}>{field.teacher}</div>}
-                    {!row.teacherId && row.teacherText && (
+                    {isNewTeacher(row) && <div style={styles.hint}>{t('scNewTeacherHint')}</div>}
+                    {!row.teacherId && row.teacherAmbiguous && (
                       <div style={styles.issue}>{t('scExcelSaid')}: “{row.teacherText}”</div>
                     )}
                   </td>

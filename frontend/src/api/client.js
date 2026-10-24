@@ -59,15 +59,15 @@ export const api = {
       return data;
     });
   },
-  downloadCredentials: async (grade, classroomSection) => {
+  downloadCredentials: async (grade, classroomSection, role = 'student') => {
     const token = localStorage.getItem('token');
-    const params = new URLSearchParams();
+    const params = new URLSearchParams({ role });
     if (grade) params.set('grade', grade);
     if (classroomSection) params.set('classroomSection', classroomSection);
     const res = await fetch(`${BASE_URL}/users/credentials?${params}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Failed to download credentials');
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed to download credentials');
     return res.blob();
   },
 

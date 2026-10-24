@@ -219,7 +219,7 @@ const translations = {
     scExamsCount: 'exams',
     scTodosCount: 'to-dos',
     scAssignTitle: 'Assign teachers to subjects',
-    scAssignHelp: 'Add assignments by hand, or upload an Excel file with the columns Teacher | Subject | Grade | Classrooms (for example A,B,C). The sheet appears below so you can fix it before saving. Saving only adds assignments — it never removes or duplicates existing ones.',
+    scAssignHelp: 'Add assignments by hand, or upload an Excel file with the columns Teacher | Subject | Grade | Classrooms (for example A,B,C). The sheet appears below so you can fix it before saving. Teachers who do not have an account yet are created when you save, and an Excel sheet with their usernames and passwords downloads. Saving only adds assignments — it never removes or duplicates existing ones.',
     scUploadExcel: 'Upload Excel',
     scRowsCount: 'rows',
     scNeedAttention: 'need attention',
@@ -250,9 +250,18 @@ const translations = {
     loginSheetDownloaded: 'Student login sheet downloaded.',
     rowsHadErrors: 'row(s) had errors — check spreadsheet formatting.',
 
-    redownloadTitle: 'Re-download student logins',
-    redownloadExplain: 'Get an Excel sheet of student usernames/passwords anytime — not just right after import.',
-    downloadLogins: 'Download student logins (.xlsx)'
+    teacherLoginSheetDownloaded: 'Teacher login sheet downloaded.',
+    scTeachersCreated: 'new teacher account(s) created.',
+    scNewTeachersCount: 'new teacher(s)',
+    scNewTeacherHint: 'New teacher — an account is created when you save',
+    scIssueTeacherAmbiguous: 'Several teachers have this name — choose one',
+    scLoginsStudents: 'Students',
+    scLoginsTeachers: 'Teachers',
+    scLoginsAll: 'Everyone',
+
+    redownloadTitle: 'Re-download logins',
+    redownloadExplain: 'Get an Excel sheet of usernames/passwords for students, teachers or everyone anytime — not just right after import.',
+    downloadLogins: 'Download logins (.xlsx)'
   },
   ar: {
     appName: 'بوابة المدرسة',
@@ -472,7 +481,7 @@ const translations = {
     scExamsCount: 'امتحانات',
     scTodosCount: 'مهام',
     scAssignTitle: 'تعيين المعلمين للمواد',
-    scAssignHelp: 'أضف التعيينات يدويًا، أو ارفع ملف إكسل بالأعمدة: المعلم | المادة | الصف | الشعب (مثل A,B,C). يظهر الجدول أدناه لتصحيحه قبل الحفظ. الحفظ يضيف التعيينات فقط — لا يحذف الموجود ولا يكرره.',
+    scAssignHelp: 'أضف التعيينات يدويًا، أو ارفع ملف إكسل بالأعمدة: المعلم | المادة | الصف | الشعب (مثل A,B,C). يظهر الجدول أدناه لتصحيحه قبل الحفظ. المعلمون الذين ليس لديهم حساب يُنشأ لهم حساب عند الحفظ، ويتم تنزيل ملف إكسل بأسماء المستخدمين وكلمات المرور. الحفظ يضيف التعيينات فقط — لا يحذف الموجود ولا يكرره.',
     scUploadExcel: 'رفع ملف إكسل',
     scRowsCount: 'صفوف',
     scNeedAttention: 'تحتاج مراجعة',
@@ -503,9 +512,18 @@ const translations = {
     loginSheetDownloaded: 'تم تنزيل ملف تسجيل دخول الطلاب.',
     rowsHadErrors: 'صف/صفوف بها أخطاء — تحقق من تنسيق الجدول.',
 
-    redownloadTitle: 'إعادة تنزيل بيانات دخول الطلاب',
-    redownloadExplain: 'احصل على ملف إكسل بأسماء مستخدمي وكلمات مرور الطلاب في أي وقت — وليس فقط بعد الاستيراد مباشرة.',
-    downloadLogins: 'تنزيل بيانات دخول الطلاب (.xlsx)'
+    teacherLoginSheetDownloaded: 'تم تنزيل ملف تسجيل دخول المعلمين.',
+    scTeachersCreated: 'حساب معلم جديد تم إنشاؤه.',
+    scNewTeachersCount: 'معلم جديد',
+    scNewTeacherHint: 'معلم جديد — يُنشأ له حساب عند الحفظ',
+    scIssueTeacherAmbiguous: 'يوجد عدة معلمين بهذا الاسم — اختر واحدًا',
+    scLoginsStudents: 'الطلاب',
+    scLoginsTeachers: 'المعلمون',
+    scLoginsAll: 'الجميع',
+
+    redownloadTitle: 'إعادة تنزيل بيانات الدخول',
+    redownloadExplain: 'احصل على ملف إكسل بأسماء المستخدمين وكلمات المرور للطلاب أو المعلمين أو الجميع في أي وقت — وليس فقط بعد الاستيراد مباشرة.',
+    downloadLogins: 'تنزيل بيانات الدخول (.xlsx)'
   }
 };
 
