@@ -12,9 +12,9 @@ export default function Sidebar({ active, onSelect, noticesBadge = 0 }) {
     { key: 'calendar', label: t('calendar'), icon: '/icons/calendar.png' },
     { key: 'homework', label: t('homework'), icon: '/icons/homework.png' },
     { key: 'marks', label: t('marks'), icon: '/icons/marks.png' },
-    // Subjects management is admin-only — hidden from regular teachers/students
+    // The School tab (classes, teachers, students) is admin-only — hidden from regular teachers/students
     // to keep the app simpler for the people actually teaching/studying.
-    ...(user?.role === 'admin' ? [{ key: 'subjects', label: t('subjects'), icon: '/icons/subjects.png' }] : []),
+    ...(user?.role === 'admin' ? [{ key: 'school', label: t('school'), icon: '/icons/school.png' }] : []),
     { key: 'settings', label: t('settings'), icon: '/icons/settings.png' },
     { key: 'account', label: t('account'), icon: '/icons/account.png' }
   ];
