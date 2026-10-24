@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Calendar from '../components/Calendar';
-import SubjectsPanel from '../components/SubjectsPanel';
+import SchoolPanel from '../components/SchoolPanel';
 import SettingsPanel from '../components/SettingsPanel';
 import HomeworkPanel from '../components/HomeworkPanel';
 import AccountPanel from '../components/AccountPanel';
@@ -54,7 +54,7 @@ export default function Dashboard() {
         {active === 'notices' && <NoticesPanel notifications={notifications} push={push} onNavigate={setActive} />}
         {active === 'homework' && <HomeworkPanel />}
         {active === 'marks' && <MarksPanel />}
-        {active === 'subjects' && <SubjectsPanel />}
+        {active === 'school' && <SchoolPanel />}
         {active === 'settings' && <SettingsPanel />}
         {active === 'account' && <AccountPanel />}
       </main>
