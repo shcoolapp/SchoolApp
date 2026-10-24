@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, getStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
+import AttemptAnswers from './AttemptAnswers';
 
 const BLANK_QUESTION = { questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'a' };
 const MAX_TEMPLATES = 5;
+
+// Red when the mark is under 50%
+const markStyle = (score, total) => (Number(total) > 0 && (Number(score) / Number(total)) * 100 < 50
+  ? { color: 'var(--mark-fail)', fontWeight: 700 }
+  : { fontWeight: 600 });
 
 function formatClock(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
@@ -175,6 +181,15 @@ export default function HomeworkPanel() {
       setError(err.message);
     }
   }
+
+  // The teacher's results panel keeps itself up to date while it is open (students submit at any moment).
+  useEffect(() => {
+    if (!viewingResultsFor) return undefined;
+    const id = setInterval(() => {
+      api.getHomeworkResults(viewingResultsFor).then(setResults).catch(() => {});
+    }, 10000);
+    return () => clearInterval(id);
+  }, [viewingResultsFor]);
 
   // Starts (or resumes) an attempt. The server decides: resume an open one, the official first
   // attempt on a random template, or a practice attempt. The countdown starts on the server.
@@ -450,22 +465,31 @@ export default function HomeworkPanel() {
         <div style={styles.submissionsPanel}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h4 style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text-primary)' }}>{t('results')}</h4>
-            <button onClick={() => setViewingResultsFor(null)} style={styles.secondaryBtn}>{t('close')}</button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={() => viewResults(viewingResultsFor)} style={styles.secondaryBtn}>{t('refresh')}</button>
+              <button onClick={() => setViewingResultsFor(null)} style={styles.secondaryBtn}>{t('close')}</button>
+            </div>
           </div>
           {results.length === 0 && (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.812rem' }}>{t('noStudentsEnrolled')}</p>
           )}
           {results.map((r) => (
-            <div key={r.student_id} style={styles.row}>
-              <p style={{ margin: 0, fontSize: '0.812rem', color: 'var(--text-primary)' }}>{r.student_name}</p>
-              <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                {r.submitted_at
-                  ? `${r.score} / ${r.total} · ${t('templateLabel')} ${r.template_number}`
-                  : r.started_at
+            <div key={r.student_id} style={{ ...styles.row, display: 'block' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                <p style={{ margin: 0, fontSize: '0.812rem', color: 'var(--text-primary)' }}>{r.student_name}</p>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {r.submitted_at ? (
+                    <>
+                      <span style={markStyle(r.score, r.total)}>{r.score} / {r.total}</span>
+                      {` · ${t('templateLabel')} ${r.template_number}`}
+                    </>
+                  ) : r.started_at
                     ? `${t('inProgress')} · ${t('templateLabel')} ${r.template_number}`
                     : t('notStarted')}
-                {Number(r.practice_attempts) > 0 && ` · ${r.practice_attempts} ${t('practiceAttempts')}`}
-              </p>
+                  {Number(r.practice_attempts) > 0 && ` · ${r.practice_attempts} ${t('practiceAttempts')}`}
+                </p>
+              </div>
+              {r.submitted_at && r.attempt_id && <AttemptAnswers attemptId={r.attempt_id} whose="student" />}
             </div>
           ))}
         </div>
@@ -491,16 +515,19 @@ export default function HomeworkPanel() {
 
       {items.map((item) => (
         <div key={item.id} style={styles.row}>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{item.title}</p>
             <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               {item.subject_name} · {t('due')} {item.due_date.slice(0, 10)}
               {item.type === 'mcq' && ` · ${item.duration_minutes ? `${item.duration_minutes} ${t('minutesShort')}` : t('noTimeLimit')}`}
             </p>
             {user?.role === 'student' && item.type === 'mcq' && item.my_submitted_at && (
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-primary)' }}>
-                {t('firstAttemptScore')}: {item.my_score} / {item.my_total}
-              </p>
+              <>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--text-primary)' }}>
+                  {t('firstAttemptScore')}: <span style={markStyle(item.my_score, item.my_total)}>{item.my_score} / {item.my_total}</span>
+                </p>
+                {item.my_attempt_id && <AttemptAnswers attemptId={item.my_attempt_id} whose="mine" />}
+              </>
             )}
           </div>
           {user?.role === 'student' && item.type === 'mcq' && !item.my_started_at && (
