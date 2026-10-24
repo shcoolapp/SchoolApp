@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api/client';
 import { useTranslation } from '../i18n/translations';
+import { printAttempt } from '../lib/printSheet';
 
 // "Show answers" toggle for a finished attempt: every question with the chosen and the correct answer.
 // The answers are only fetched the first time it is opened. `whose` is 'mine' (student) or 'student' (teacher).
@@ -22,11 +23,26 @@ export default function AttemptAnswers({ attemptId, whose = 'mine' }) {
     }
   }
 
+  // Prints the attempt with the correct answers (fetches it first if the list was never opened)
+  async function print() {
+    try {
+      const d = data || await api.getAttemptAnswers(attemptId);
+      if (!data) setData(d);
+      printAttempt(d, whose, t);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   return (
     <div style={{ marginTop: '6px' }}>
       <button type="button" onClick={toggle} style={styles.toggle} aria-expanded={open}>
         {open ? '▾' : '▸'} {open ? t('hideAnswers') : t('showAnswers')}
       </button>
+      <button type="button" onClick={print} style={{ ...styles.toggle, marginInlineStart: '14px' }}>
+        🖨 {whose === 'mine' ? t('printWithMine') : t('printWithStudent')}
+      </button>
+      {!open && error && <p style={{ color: 'var(--error)', fontSize: '0.75rem', margin: '4px 0 0' }}>{error}</p>}
       {open && (
         <div style={styles.panel}>
           {error && <p style={{ color: 'var(--error)', fontSize: '0.75rem', margin: 0 }}>{error}</p>}

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api, getStoredUser } from '../api/client';
 import { useTranslation } from '../i18n/translations';
 import AttemptAnswers from './AttemptAnswers';
-import { printSheet } from '../lib/printSheet';
+import { printSheet, printAttempt } from '../lib/printSheet';
 import { formatMark, scaled } from '../lib/mark';
 
 const BLANK_QUESTION = { questionText: '', optionA: '', optionB: '', optionC: '', optionD: '', correctOption: 'a' };
@@ -217,6 +217,16 @@ export default function HomeworkPanel() {
     }, t);
   }
 
+  // Student: print the attempt just finished, with the correct answers
+  async function printResult() {
+    setError('');
+    try {
+      printAttempt(await api.getAttemptAnswers(result.attemptId), 'mine', t);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   // The teacher's results panel keeps itself up to date while it is open (students submit at any moment).
   useEffect(() => {
     if (!viewingResultsFor) return undefined;
@@ -266,7 +276,7 @@ export default function HomeworkPanel() {
     setError('');
     try {
       const res = await api.submitHomeworkAnswers(quiz.homeworkId, quiz.attemptId, answers);
-      setResult(res);
+      setResult({ ...res, attemptId: quiz.attemptId });
       setActiveQuiz(null);
     } catch (err) {
       // Server closed the attempt (time ran out before the answers arrived)
@@ -352,6 +362,7 @@ export default function HomeworkPanel() {
         <p style={styles.resultBanner}>
           {result.isOfficial ? t('firstAttemptScore') : t('yourScore')}: {formatMark(result.score, result.total)} ({result.score} / {result.total} {t('correctWord')})
           {!result.isOfficial && ` — ${t('practiceMode')}`}
+          <button onClick={printResult} style={{ ...styles.secondaryBtn, marginInlineStart: '10px' }}>🖨 {t('printWithMine')}</button>
         </p>
       )}
 
