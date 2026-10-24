@@ -347,6 +347,47 @@ router.get('/:id/results', requireAuth, requireRole('teacher'), async (req, res)
   res.json(result.rows);
 });
 
+// GET /api/homework/:id/print — teacher gets every template with its correct answers, to print a paper copy
+// (the client decides whether the answers are shown on the sheet)
+router.get('/:id/print', requireAuth, requireRole('teacher'), async (req, res) => {
+  try {
+    const homeworkId = Number(req.params.id);
+
+    const hw = await pool.query(
+      `SELECT h.title, h.due_date, s.name AS subject_name
+       FROM homework h JOIN subjects s ON s.id = h.subject_id
+       WHERE h.id = $1 AND s.teacher_id = $2 AND h.type = 'mcq'`,
+      [homeworkId, req.user.id]
+    );
+    if (hw.rows.length === 0) return res.status(404).json({ error: 'Homework not found or not yours' });
+
+    const rows = await pool.query(
+      `SELECT t.position, q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_option
+       FROM homework_templates t
+       JOIN homework_questions q ON q.template_id = t.id
+       WHERE t.homework_id = $1
+       ORDER BY t.position, q.order_index, q.id`,
+      [homeworkId]
+    );
+
+    const byPosition = new Map();
+    for (const q of rows.rows) {
+      if (!byPosition.has(q.position)) byPosition.set(q.position, { position: q.position, questions: [] });
+      byPosition.get(q.position).questions.push({
+        id: q.id,
+        text: q.question_text,
+        options: { a: q.option_a, b: q.option_b, c: q.option_c, d: q.option_d },
+        correct: q.correct_option
+      });
+    }
+
+    res.json({ ...hw.rows[0], templates: [...byPosition.values()] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load the homework for printing' });
+  }
+});
+
 // POST /api/homework/file — teacher creates file-based (non-MCQ) homework
 router.post('/file', requireAuth, requireRole('teacher'), async (req, res) => {
   const { subjectId, title, description, dueDate } = req.body;
@@ -435,7 +476,8 @@ router.get('/attempt/:attemptId', requireAuth, async (req, res) => {
   try {
     const attemptId = Number(req.params.attemptId);
     const a = await pool.query(
-      `SELECT a.*, h.title, h.subject_id, s.teacher_id, u.name AS student_name
+      `SELECT a.*, h.title, h.due_date, h.subject_id, s.teacher_id, s.name AS subject_name, u.name AS student_name,
+              (SELECT t.position FROM homework_templates t WHERE t.id = a.template_id) AS template_number
        FROM homework_attempts a
        JOIN homework h ON h.id = a.homework_id
        JOIN subjects s ON s.id = h.subject_id
@@ -468,6 +510,9 @@ router.get('/attempt/:attemptId', requireAuth, async (req, res) => {
     res.json({
       attemptId,
       title: attempt.title,
+      subjectName: attempt.subject_name,
+      dueDate: attempt.due_date,
+      templateNumber: attempt.template_number,
       studentName: attempt.student_name,
       isOfficial: attempt.attempt_no === 1,
       score: fresh.rows[0].score,
