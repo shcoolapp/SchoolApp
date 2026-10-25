@@ -3,7 +3,7 @@
 // list instead of free text eliminates the class of bugs where a typo
 // ("1 mid" vs "1 Mid") silently breaks student-subject matching, since
 // enrollment is based on exact string equality.
-const GRADES = ['1 Mid', '2 Mid', '3 Mid', '4 Prep', '5 Prep', '6 Prep'];
+const GRADES = ['الاول متوسط', 'الثاني متوسط', 'الثالث متوسط', 'رابع اعدادي', 'خامس اعدادي', 'سادس اعدادي'];
 const CLASSROOMS = ['A', 'B', 'C', 'D'];
 
 function isValidGrade(grade) {
