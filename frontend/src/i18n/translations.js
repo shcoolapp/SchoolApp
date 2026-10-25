@@ -171,9 +171,9 @@ const translations = {
 
     onlyTeachersManageSubjects: 'Only teachers can manage subjects.',
     subjectNamePlaceholder: 'Subject name (e.g. Math)',
-    gradePlaceholder: 'Grade (e.g. 1 Mid)',
+    gradePlaceholder: 'Grade (e.g. الاول متوسط)',
     classroomPlaceholder: 'Classroom (e.g. B)',
-    gradeOptionalPlaceholder: 'Grade (optional, e.g. 1 Mid)',
+    gradeOptionalPlaceholder: 'Grade (optional, e.g. الاول متوسط)',
     classroomOptionalPlaceholder: 'Classroom (optional, e.g. B)',
     addSubject: 'Add subject',
     noSubjectsYet: 'No subjects yet.',
@@ -433,9 +433,9 @@ const translations = {
 
     onlyTeachersManageSubjects: 'يمكن للمعلمين فقط إدارة المواد.',
     subjectNamePlaceholder: 'اسم المادة (مثل: رياضيات)',
-    gradePlaceholder: 'الصف (مثل: أول متوسط)',
+    gradePlaceholder: 'الصف (مثل: الاول متوسط)',
     classroomPlaceholder: 'الشعبة (مثل: ب)',
-    gradeOptionalPlaceholder: 'الصف (اختياري، مثل: أول متوسط)',
+    gradeOptionalPlaceholder: 'الصف (اختياري، مثل: الاول متوسط)',
     classroomOptionalPlaceholder: 'الشعبة (اختياري، مثل: ب)',
     addSubject: 'إضافة مادة',
     noSubjectsYet: 'لا توجد مواد بعد.',
